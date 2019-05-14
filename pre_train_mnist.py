@@ -14,7 +14,6 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 print('==> Preparing data..')
 transform_train = transforms.Compose([
-    # transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
@@ -95,7 +94,7 @@ def test(epoch):
     # Save checkpoint.
     acc = 100.*correct/total
     print('valid acc: %.2f' % acc)
-    if acc > best_acc:
+    if acc >= best_acc:
         print('update resnet ckpt!')
         state = {
             'net': net.state_dict(),

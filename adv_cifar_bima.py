@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 import torchvision
 import torchvision.transforms as transforms
 import os
-from models.conv import MnistModel
+from models.resnet import PreActResNet18
 from settings import *
 import torch.nn.functional as F
 import numpy as np
@@ -15,7 +15,6 @@ from torch.nn.modules.distance import PairwiseDistance
 from utils.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
-import torch
 
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
@@ -23,6 +22,7 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 print('==> Preparing data..')
 transform_train = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
@@ -31,16 +31,17 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
+trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
+classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 # Model
 print('==> Building model..')
-net = MnistModel()
+net = PreActResNet18()
 net = net.to(device)
 
 if device == 'cuda':
@@ -50,16 +51,13 @@ if device == 'cuda':
 # Load checkpoint.
 print('==> Resuming from checkpoint..')
 assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-checkpoint = torch.load(MNIST_CKPT)
+checkpoint = torch.load(CLASSIFY_CKPT)
 net.load_state_dict(checkpoint['net'])
 start_epoch = checkpoint['epoch']
-try:
-    best_acc = checkpoint['auc_score']
-    if best_acc > 90:
-        best_acc = best_acc / 100
-    print('best_auc: %.2f%%' % (100.*best_acc))
-except:
-    pass
+best_acc = checkpoint['acc']
+if best_acc > 90:
+    best_acc = best_acc / 100
+print('best_acc: %.2f%%' % (100.*best_acc))
 
 l2dist = PairwiseDistance(2)
 criterion_none = nn.CrossEntropyLoss(reduction='none')
@@ -75,7 +73,7 @@ cw_attack = cw.L2Adversary(targeted=False,
                            optimizer_lr=0.001)
 jsma_params = {'theta': 1, 'gamma': 0.1,
                'clip_min': 0., 'clip_max': 1.,
-               'nb_classes': 10}
+               'nb_classes': len(classes)}
 jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
 # Training
@@ -93,18 +91,17 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        x_adv = FGSM(inputs, targets, eps=EPS_MINIST)
+        x_adv = FGSM(inputs, targets, eps=1/255)
         adv_outputs = net(x_adv)
 
         loss1 = criterion(outputs, targets)
         loss2 = criterion(adv_outputs, targets)
-        loss = loss1 + loss2*0.8
+        loss = loss1 + loss2 * 0.8
         loss.backward()
         optimizer.step()
 
     acc = correct / total
     print('train acc: %.2f%%' % (100.*acc))
-
 
 def test(epoch, methods='fgsm', update=False):
     global best_acc
@@ -134,7 +131,7 @@ def test(epoch, methods='fgsm', update=False):
         total_right += inputs.size(0)
 
         # benign fgsm
-        benign_fgsm = FGSM(inputs, predicted, eps=EPS_MINIST)
+        benign_fgsm = FGSM(inputs, predicted, eps=1/255)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
         benign_fgsm_correct += benign_fgsm_predicted.eq(predicted).sum().item()
@@ -143,24 +140,25 @@ def test(epoch, methods='fgsm', update=False):
 
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=50, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10, bim_a=True)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=50)
+            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10)
         elif methods == 'jsma':
             x_adv = jsma_attack.generate(inputs, y=predicted)
         else:
             x_adv = cw_attack(net, inputs, predicted, to_numpy=False)
 
-        l2sum += l2dist.forward(x_adv.reshape(temp_batch, -1), inputs.reshape(temp_batch, -1)).sum().detach().cpu().numpy()
+        l2sum += l2dist.forward(x_adv.reshape(temp_batch, -1),
+                                inputs.reshape(temp_batch, -1)).sum().detach().cpu().numpy()
         adv_outputs = net(x_adv)
         _, adv_predicted = adv_outputs.max(1)
         attack_correct += adv_predicted.eq(predicted).sum().item()
         selected = (adv_predicted != targets).cpu().numpy()
 
         # adv_fgsm
-        adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_MINIST)
+        adv_fgsm = FGSM(x_adv, adv_predicted, eps=1/255)
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
@@ -177,36 +175,36 @@ def test(epoch, methods='fgsm', update=False):
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
 
-        # if batch_idx > 0:
+        # if batch_idx == 1:
         #     break
 
-    acc = correct/total
+    acc = correct / total
     attack_acc = attack_correct / total_right
-    benign_fgsm_acc = benign_fgsm_correct/ total_right
+    benign_fgsm_acc = benign_fgsm_correct / total_right
     adv_fgsm_acc = adv_fgsm_correct / total_right
-    print('-'*20,total,total_right)
-    print('valid acc: %.2f%%' % (100.*acc))
-    print('attact acc: %.2f%% L2 perturbation: %.2f' % (100.*attack_acc, l2sum/total_right))
-    print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100.*benign_fgsm_acc, 100.*adv_fgsm_acc))
+    print('-' * 20, total, total_right)
+    print('valid acc: %.2f%%' % (100. * acc))
+    print('attact acc: %.2f%% L2 perturbation: %.2f' % (100. * attack_acc, l2sum / total_right))
+    print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_fgsm_acc, 100. * adv_fgsm_acc))
     benign_fgsm_loss = benign_fgsm_loss.reshape(-1)
     adv_fgsm_loss = adv_fgsm_loss.reshape(-1)
 
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
     labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
     auc_score = roc_auc(labels, losses)
-    print('[ROC_AUC] score: %.2f%%' % (100.*auc_score))
+    print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
     # Save checkpoint.
     if auc_score >= best_acc and update:
         print('update resnet ckpt!')
         state = {
             'net': net.state_dict(),
-            'auc_score': auc_score,
+            'acc': auc_score,
             'epoch': epoch,
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, MNIST_CKPT)
+        torch.save(state, CLASSIFY_CKPT)
         best_acc = auc_score
 
 def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
@@ -225,9 +223,9 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
     return x_adv
 
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    # fgsm, bim_a, bim_b, jsma, cw
-    # train(epoch)
-    # test(epoch, methods='bim_b', update=True)
+    # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
+    train(epoch)
+    test(epoch, methods='bim_a', update=True)
 
-    test(epoch, methods='jsma', update=False)
-    break
+    # test(epoch, methods='bim_a', update=False)
+    # break

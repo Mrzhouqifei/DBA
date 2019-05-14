@@ -103,7 +103,7 @@ def train(epoch):
     acc = correct / total
     print('train acc: %.2f%%' % (100.*acc))
 
-def test(epoch, methods='fgsm'):
+def test(epoch, methods='fgsm', update=False):
     global best_acc
     net.eval()
     correct = 0
@@ -195,7 +195,7 @@ def test(epoch, methods='fgsm'):
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
     # Save checkpoint.
-    if auc_score > best_acc:
+    if auc_score >= best_acc and update:
         print('update resnet ckpt!')
         state = {
             'net': net.state_dict(),
@@ -223,7 +223,9 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
     return x_adv
 
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    # train(epoch)
     # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
-    test(epoch, methods='jsma')
-    # break
+    # train(epoch)
+    # test(epoch, methods='fgsm', update=True)
+
+    test(epoch, methods='bim_a', update=False)
+    break

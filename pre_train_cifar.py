@@ -96,7 +96,7 @@ def test(epoch):
     # Save checkpoint.
     acc = 100.*correct/total
     print('valid acc: %.2f' % acc)
-    if acc > best_acc:
+    if acc >= best_acc:
         print('update resnet ckpt!')
         state = {
             'net': net.state_dict(),

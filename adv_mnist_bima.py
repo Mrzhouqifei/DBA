@@ -93,7 +93,7 @@ def train(epoch):
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        x_adv = FGSM(inputs, targets, eps=EPS_MINIST)
+        x_adv = FGSM(inputs, targets, eps=1/255)
         adv_outputs = net(x_adv)
 
         loss1 = criterion(outputs, targets)
@@ -134,7 +134,7 @@ def test(epoch, methods='fgsm', update=False):
         total_right += inputs.size(0)
 
         # benign fgsm
-        benign_fgsm = FGSM(inputs, predicted, eps=EPS_MINIST)
+        benign_fgsm = FGSM(inputs, predicted, eps=1/255)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
         benign_fgsm_correct += benign_fgsm_predicted.eq(predicted).sum().item()
@@ -160,7 +160,7 @@ def test(epoch, methods='fgsm', update=False):
         selected = (adv_predicted != targets).cpu().numpy()
 
         # adv_fgsm
-        adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_MINIST)
+        adv_fgsm = FGSM(x_adv, adv_predicted, eps=1/255)
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
@@ -227,7 +227,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # fgsm, bim_a, bim_b, jsma, cw
     # train(epoch)
-    # test(epoch, methods='bim_b', update=True)
+    # test(epoch, methods='bim_a', update=True)
 
-    test(epoch, methods='jsma', update=False)
+    test(epoch, methods='bim_a', update=False)
     break

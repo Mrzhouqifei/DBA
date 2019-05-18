@@ -1,0 +1,91 @@
+\begin{thebibliography}{10}
+
+\bibitem{athalye2018obfuscated}
+Anish Athalye, Nicholas Carlini, and David~A Wagner.
+\newblock Obfuscated gradients give a false sense of security: Circumventing
+  defenses to adversarial examples.
+\newblock {\em international conference on machine learning}, pages 274--283,
+  2018.
+
+\bibitem{Carlini2016Towards}
+Nicholas Carlini and David Wagner.
+\newblock Towards evaluating the robustness of neural networks.
+\newblock 2016.
+
+\bibitem{carlini2017adversarial}
+Nicholas Carlini and David~A Wagner.
+\newblock Adversarial examples are not easily detected: Bypassing ten detection
+  methods.
+\newblock {\em arXiv: Learning}, pages 3--14, 2017.
+
+\bibitem{das2017keeping}
+Nilaksh Das, Madhuri Shanbhogue, Shangtse Chen, Fred Hohman, Li~Chen, Michael~E
+  Kounavis, and Duen~Horng Chau.
+\newblock Keeping the bad guys out: Protecting and vaccinating deep learning
+  with jpeg compression.
+\newblock {\em arXiv: Computer Vision and Pattern Recognition}, 2017.
+
+\bibitem{dathathri2018detecting}
+Sumanth Dathathri, Stephan Zheng, Richard~M Murray, and Yisong Yue.
+\newblock Detecting adversarial examples via neural fingerprinting.
+\newblock {\em arXiv: Learning}, 2018.
+
+\bibitem{feinman2017detecting}
+Reuben Feinman, Ryan~R Curtin, Saurabh Shintre, and Andrew~B Gardner.
+\newblock Detecting adversarial samples from artifacts.
+\newblock {\em arXiv: Machine Learning}, 2017.
+
+\bibitem{Goodfellow2014Explaining}
+Ian~J. Goodfellow, Jonathon Shlens, and Christian Szegedy.
+\newblock Explaining and harnessing adversarial examples.
+\newblock {\em Computer Science}, 2014.
+
+\bibitem{Kurakin2016Adversarial}
+Alexey Kurakin, Ian Goodfellow, and Samy Bengio.
+\newblock Adversarial examples in the physical world.
+\newblock 2016.
+
+\bibitem{ma2018characterizing}
+Xingjun Ma, Bo~Li, Yisen Wang, Sarah~M Erfani, Sudanthi N~R Wijewickrema, Grant
+  Schoenebeck, Michael~E Houle, Dawn Song, and James Bailey.
+\newblock Characterizing adversarial subspaces using local intrinsic
+  dimensionality.
+\newblock {\em international conference on learning representations}, 2018.
+
+\bibitem{pang2018towards}
+Tianyu Pang, Chao Du, Yinpeng Dong, and Jun Zhu.
+\newblock Towards robust detection of adversarial examples.
+\newblock {\em neural information processing systems}, pages 4584--4594, 2018.
+
+\bibitem{Papernot2016Transferability}
+Nicolas Papernot, Patrick Mcdaniel, and Ian Goodfellow.
+\newblock Transferability in machine learning: from phenomena to black-box
+  attacks using adversarial samples.
+\newblock 2016.
+
+\bibitem{papernot2016the}
+Nicolas Papernot, Patrick~D Mcdaniel, Somesh Jha, Matthew Fredrikson, Z~Berkay
+  Celik, and Ananthram Swami.
+\newblock The limitations of deep learning in adversarial settings.
+\newblock {\em ieee european symposium on security and privacy}, pages
+  372--387, 2016.
+
+\bibitem{papernot2016distillation}
+Nicolas Papernot, Patrick~D Mcdaniel, Xi~Wu, Somesh Jha, and Ananthram Swami.
+\newblock Distillation as a defense to adversarial perturbations against deep
+  neural networks.
+\newblock {\em ieee symposium on security and privacy}, pages 582--597, 2016.
+
+\bibitem{Szegedy2013Intriguing}
+Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan,
+  Ian Goodfellow, and Rob Fergus.
+\newblock Intriguing properties of neural networks.
+\newblock {\em Computer Science}, 2013.
+
+\bibitem{xu2018feature}
+Weilin Xu, David Evans, and Yanjun Qi.
+\newblock Feature squeezing: Detecting adversarial examples in deep neural
+  networks.
+\newblock {\em network and distributed system security symposium}, 2018.
+
+\end{thebibliography}

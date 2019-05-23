@@ -131,6 +131,7 @@ def test(epoch, methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
+        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -165,7 +166,7 @@ def test(epoch, methods='fgsm', update=False):
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
         # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
-        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
+        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
 
         # select the examples which is attacked successfully
         temp1 = temp1[selected].reshape(1, -1)
@@ -229,5 +230,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='bim_b', update=True)
 
-    test(epoch, methods='cw', update=False)
+    test(epoch, methods='bim_b', update=False)
     break

@@ -227,5 +227,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    test(epoch, methods='jsma', update=False)
+    test(epoch, methods='bim_b', update=False)
     break

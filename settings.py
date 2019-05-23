@@ -4,7 +4,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASSES = 10
 BATCH_SIZE = 20
 
-LOAD_CKPT = True # pre_train
+LOAD_CKPT = False # pre_train
 NUM_EPOCHS = 20
 LEARNING_RATE = 0.001
 SCHEDULER_STEP_SIZE = 20
@@ -18,6 +18,9 @@ CLASSIFY_CKPT = './checkpoint/resnet_98.49%.pth'
 # conv      conv_97.79%     conv_bima99.85%.pth
 MNIST_CKPT = './checkpoint/conv_97.79%.pth'
 
+MOIVE_CKPT = 'checkpoint/model-Copy1.pth'
+
+MOIVE_CKPT_ADV_TRAINING = 'checkpoint/model_adv.pth'
 
 
 

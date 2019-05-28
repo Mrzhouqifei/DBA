@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2019.2.1)  17 MAY 2019 13:32
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2019.2.1)  27 MAY 2019 19:25
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -611,7 +611,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             See the microtype manual for details.
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <12> not available
 (Font)              Font shape `T1/ptm/b/n' tried instead on input line 92.
-<car.png, id=12, 232.87pt x 227.85126pt>
+<car.png, id=49, 232.87pt x 227.85126pt>
 File: car.png Graphic file (type png)
 <use car.png>
 Package pdftex.def Info: car.png  used on input line 105.
@@ -625,46 +625,53 @@ Package pdftex.def Info: car.png  used on input line 105.
 
 {/usr/local/texlive/2018/texmf-var/fonts/map/pdftex/updmap/pdftex.map} <./car.p
 ng>]
-LaTeX Font Info:    Try loading font information for OMS+ptm on input line 121.
+LaTeX Font Info:    Try loading font information for OMS+ptm on input line 124.
 
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/psnfss/omsptm.fd
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 121.
- (./paper.bbl
-[2])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 157.
- [3]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 157.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 124.
+ [2] [3]
+(./paper.bbl [4])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 222.
+ [5]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 222.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 157.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 157.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 222.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 222.
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: A02D95553E30B97FF125B1AA17CF9044;47.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 157.
+(rerunfilecheck)             Checksum: 90CF524482DA2D4AF5DCCC5E53F40187;670.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 222.
  ) 
 Here is how much of TeX's memory you used:
- 10689 strings out of 492649
- 165311 string characters out of 6129623
- 295514 words of memory out of 5000000
- 14242 multiletter control sequences out of 15000+600000
- 36853 words of font info for 132 fonts, out of 8000000 for 9000
+ 10735 strings out of 492649
+ 165924 string characters out of 6129623
+ 296645 words of memory out of 5000000
+ 14258 multiletter control sequences out of 15000+600000
+ 37183 words of font info for 140 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,8n,39p,1392b,433s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,8n,39p,1640b,471s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2018/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/local/t
 exlive/2018/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}</usr/local/tex
-live/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texl
-ive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
-ve/2018/texmf-dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive
-/2018/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2018/texm
-f-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2018/texmf-dist/fon
-ts/type1/urw/times/utmri8a.pfb>
-Output written on paper.pdf (3 pages, 166456 bytes).
+live/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texl
+ive/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texli
+ve/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/local/texlive
+/2018/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2
+018/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/201
+8/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2018/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2018/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2018/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2018/texmf-
+dist/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2018/texmf-di
+st/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2018/texmf-dist/fonts/t
+ype1/urw/times/utmr8a.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/urw/t
+imes/utmri8a.pfb>
+Output written on paper.pdf (5 pages, 245498 bytes).
 PDF statistics:
- 100 PDF objects out of 1000 (max. 8388607)
- 87 compressed objects within 1 object stream
- 26 named destinations out of 1000 (max. 500000)
- 22542 words of extra memory for PDF output out of 24883 (max. 10000000)
+ 194 PDF objects out of 1000 (max. 8388607)
+ 171 compressed objects within 2 object streams
+ 44 named destinations out of 1000 (max. 500000)
+ 22614 words of extra memory for PDF output out of 24883 (max. 10000000)
 

@@ -12,6 +12,7 @@ import pickle
 from utils.wordProcess import *
 from models.moiveRnn import Model
 from settings import *
+from adversary.fgsm import Attack_MOVIE
 from utils.roc_plot import roc_auc
 
 with open('output/dict.pkl','rb') as f :
@@ -33,6 +34,14 @@ model.load_state_dict(checkpoint['net'])
 best_acc = 0
 
 f = open('data/labeledTrainData.tsv').readlines()
+
+bim_attack = Attack_MOVIE(model, F.cross_entropy)
+def FGSM(x, y_true, eps=0.01):
+    x = Variable(x.to(device), requires_grad=True)
+    y_true = Variable(y_true.to(device), requires_grad=False)
+
+    x_adv = bim_attack.fgsm(x, y_true, False, eps)
+    return x_adv
 
 def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
     logits, embeddings = model(x_in)
@@ -98,9 +107,11 @@ for epoch in range(NUM_EPOCHS):
             target_data = Variable(torch.LongTensor([target])).to(device)
 
             if idx <= 20000:
-                _, x_adv, _, _ = jsma(input_data, target, model, nb_classes=2, max_iter=2, fix_iter=True)
+                _, input_data_embedding = model(input_data)
+                benign_undercover = FGSM(input_data_embedding, target_data, eps=0.01)
+
                 y_pred, _ = model(input_data)
-                adv_pred, _ = model(x_adv)
+                adv_pred, _ = model(benign_undercover, after_embedding=True)
 
                 model.zero_grad()
                 loss1 = loss_function(y_pred, target_data)
@@ -113,16 +124,26 @@ for epoch in range(NUM_EPOCHS):
                 y_pred, embeddings = model(input_data)
                 _, predicted = y_pred.max(1)
 
-                if predicted.eq(target).sum().item():
+                if predicted.eq(target_data).sum().item():
                     right += 1
                     changed, benign_adv, change_words, loss_benign = jsma(input_data, target, model,
                                                                           nb_classes=2, max_iter=20)
                     if changed:
-                        _, _, _, benign_undercover = jsma(input_data, target, model, nb_classes=2, max_iter=2, fix_iter=True)
-                        _, _, _, adv_undercover = jsma(benign_adv, 1 - target, model, nb_classes=2, max_iter=2, fix_iter=True)
-                        benignloss_list.append(benign_undercover)
-                        advloss_list.append(adv_undercover)
+                        _, input_data_embedding = model(input_data)
+                        _, benign_adv_embedding = model(benign_adv)
+                        benign_undercover = FGSM(input_data_embedding, target_data, eps=0.001)
+                        adv_undercover = FGSM(benign_adv_embedding, 1 - target_data, eps=0.001)
+
+                        benign_outputs, _ = model(benign_undercover, after_embedding=True)
+                        temp1 = criterion_none(benign_outputs, target_data).detach().cpu().numpy()[0]
+                        adv_outputs, _ = model(adv_undercover, after_embedding=True)
+                        temp2 = criterion_none(adv_outputs, 1 - target_data).detach().cpu().numpy()[0]
+
+                        benignloss_list.append(temp1)
+                        advloss_list.append(temp2)
                 total += 1
+            if idx % 2000==1:
+                print('epoch: %d, idx: %d' % (epoch, idx))
 
     print('-'*30)
     print('eopch: ', epoch)
@@ -133,7 +154,7 @@ for epoch in range(NUM_EPOCHS):
     benignloss_list = np.array(benignloss_list)
     advloss_list = np.array(advloss_list)
     losses = np.concatenate((benignloss_list, advloss_list), axis=0)
-    labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
+    labels = np.concatenate((np.ones_like(benignloss_list), np.zeros_like(advloss_list)), axis=0)
     auc_score = roc_auc(labels, losses)
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 

@@ -12,6 +12,7 @@ import pickle
 from utils.wordProcess import *
 from models.moiveRnn import Model#, Embedding
 from settings import *
+from adversary.fgsm import Attack_MOVIE
 from utils.roc_plot import roc_auc
 
 with open('output/dict.pkl','rb') as f :
@@ -32,6 +33,14 @@ best_acc = checkpoint['acc']
 print('best_acc: %.2f' % best_acc)
 
 f = open('data/movieTest.tsv').readlines()
+
+bim_attack = Attack_MOVIE(model, F.cross_entropy)
+def FGSM(x, y_true, eps=0.01):
+    x = Variable(x.to(device), requires_grad=True)
+    y_true = Variable(y_true.to(device), requires_grad=False)
+
+    x_adv = bim_attack.fgsm(x, y_true, False, eps)
+    return x_adv
 
 def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
     logits, embeddings = model(x_in)
@@ -82,6 +91,8 @@ def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
 
 
 right = 0
+benign_right = 0
+adv_right = 0
 total = 0
 benignloss_list = []
 advloss_list = []
@@ -102,22 +113,38 @@ for idx, lines in enumerate(f):
 
         y_pred, embeddings = model(input_data)
         _, predicted = y_pred.max(1)
-        if predicted.eq(target).sum().item():
+        if predicted.eq(target_data).sum().item():
             right += 1
             changed, benign_adv, change_words, loss_benign = jsma(input_data, target, model,
                                                                   nb_classes=2, max_iter=20)
             if changed:
-                _, _, _, benign_undercover = jsma(input_data, target, model, nb_classes=2, max_iter=2, fix_iter=True)
-                _, _, _, adv_undercover = jsma(benign_adv, 1 - target, model, nb_classes=2, max_iter=2, fix_iter=True)
-                benignloss_list.append(benign_undercover)
-                advloss_list.append(adv_undercover)
+                _, input_data_embedding = model(input_data)
+                _, benign_adv_embedding = model(benign_adv)
+                benign_undercover = FGSM(input_data_embedding, target_data, eps=0.00001)
+                adv_undercover = FGSM(benign_adv_embedding, 1 - target_data, eps=0.00001)
+
+                benign_outputs, _ = model(benign_undercover, after_embedding=True)
+                _, benign_predicted = benign_outputs.max(1)
+
+                if benign_predicted.eq(target_data).sum().item():
+                    benign_right+=1
+                temp1 = criterion_none(benign_outputs, target_data).detach().cpu().numpy()[0]
+                adv_outputs, _ = model(adv_undercover, after_embedding=True)
+                _, adv_predicted = adv_outputs.max(1)
+                if adv_predicted.eq(1-target_data).sum().item():
+                    adv_right+=1
+                temp2 = criterion_none(adv_outputs, 1 - target_data).detach().cpu().numpy()[0]
+
+                benignloss_list.append(temp1)
+                advloss_list.append(temp2)
                 change_words_list.append(change_words)
                 all_words_list.append(len(input_data))
         total += 1
-    # if idx > 20:
-    #     break
+    if idx % 500 == 1:
+        print(idx-1)
 
 print('acc: ', right / total)
+print(right,benign_right,adv_right)
 print('average_changedwords_num: ', np.mean(change_words_list))
 print('average_allwords_num: ', np.mean(all_words_list))
 print('benignloss_mean: ', np.mean(benignloss_list))
@@ -126,7 +153,7 @@ print('advloss_mean: ', np.mean(advloss_list))
 benignloss_list = np.array(benignloss_list)
 advloss_list = np.array(advloss_list)
 losses = np.concatenate((benignloss_list, advloss_list), axis=0)
-labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
+labels = np.concatenate((np.ones_like(benignloss_list), np.zeros_like(advloss_list)), axis=0)
 auc_score = roc_auc(labels, losses)
 print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 

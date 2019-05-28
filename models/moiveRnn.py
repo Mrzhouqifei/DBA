@@ -13,14 +13,16 @@ class Model(torch.nn.Module):
         self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.linearOut = nn.Linear(hidden_dim, 2)
 
-    def forward(self, inputs):
+    def forward(self, inputs, after_embedding=False):
         hidden = self.init_hidden()
-        embeddings = self.embeddings(inputs).view(len(inputs), 1, -1)
-        var_embeddings = Variable(embeddings, requires_grad=True)
+        if not after_embedding:
+            embeddings = self.embeddings(inputs).view(len(inputs), 1, -1)
+            var_embeddings = Variable(embeddings, requires_grad=True)
+        else:
+            var_embeddings = inputs
         lstm_out, lstm_h = self.lstm(var_embeddings, hidden)
         x = lstm_out[-1]
         x = self.linearOut(x)
-        # x = F.log_softmax(x, dim=1)
         return x, var_embeddings
 
     def init_hidden(self):

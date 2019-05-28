@@ -81,6 +81,31 @@ class Attack(object):
             x_adv = Variable(x_adv.data, requires_grad=True)
         return x_adv
 
+
+class Attack_MOVIE(object):
+    def __init__(self, classify_net, criterion):
+        self.net = classify_net
+        self.criterion = criterion
+
+    def fgsm(self, x, y, targeted=False, eps=8/255):
+        x_adv = Variable(x.data, requires_grad=True)
+        h_adv, _ = self.net(x_adv, after_embedding=True)
+        if targeted:
+            cost = -self.criterion(h_adv, y)
+        else:
+            cost = self.criterion(h_adv, y)
+
+        self.net.zero_grad()
+        if x_adv.grad is not None:
+            x_adv.grad.data.fill_(0)
+        cost.backward()
+
+        x_adv = x_adv + eps*x_adv.grad.sign_()
+        return x_adv
+
+
+
+
 def where(cond, x, y):
     """
     code from :

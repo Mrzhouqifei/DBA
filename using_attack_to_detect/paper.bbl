@@ -40,6 +40,12 @@ Ian~J. Goodfellow, Jonathon Shlens, and Christian Szegedy.
 \newblock Explaining and harnessing adversarial examples.
 \newblock {\em Computer Science}, 2014.
 
+\bibitem{He2017Adversarial}
+Warren He, James Wei, Xinyun Chen, Nicholas Carlini, and Dawn Song.
+\newblock Adversarial example defenses: Ensembles of weak defenses are not
+  strong.
+\newblock 2017.
+
 \bibitem{Kurakin2016Adversarial}
 Alexey Kurakin, Ian Goodfellow, and Samy Bengio.
 \newblock Adversarial examples in the physical world.
@@ -69,6 +75,11 @@ Nicolas Papernot, Patrick~D Mcdaniel, Somesh Jha, Matthew Fredrikson, Z~Berkay
 \newblock The limitations of deep learning in adversarial settings.
 \newblock {\em ieee european symposium on security and privacy}, pages
   372--387, 2016.
+
+\bibitem{papernot2016crafting}
+Nicolas Papernot, Patrick~D Mcdaniel, Ananthram Swami, and Richard~E Harang.
+\newblock Crafting adversarial input sequences for recurrent neural networks.
+\newblock {\em military communications conference}, pages 49--54, 2016.
 
 \bibitem{papernot2016distillation}
 Nicolas Papernot, Patrick~D Mcdaniel, Xi~Wu, Somesh Jha, and Ananthram Swami.

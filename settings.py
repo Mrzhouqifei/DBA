@@ -4,7 +4,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASSES = 10
 BATCH_SIZE = 20
 
-LOAD_CKPT = False # pre_train
+LOAD_CKPT = True # pre_train
 NUM_EPOCHS = 20
 LEARNING_RATE = 0.001
 SCHEDULER_STEP_SIZE = 20

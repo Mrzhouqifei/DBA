@@ -4,47 +4,48 @@ The top-level auxiliary file: paper.aux
 The style file: plain.bst
 Database file #1: ref.bib
 Warning--empty journal in Carlini2016Towards
+Warning--empty journal in He2017Adversarial
 Warning--empty journal in Kurakin2016Adversarial
 Warning--empty journal in Papernot2016Transferability
-You've used 15 entries,
+You've used 17 entries,
             2118 wiz_defined-function locations,
-            567 strings with 6989 characters,
-and the built_in function-call counts, 5597 in all, are:
-= -- 528
-> -- 370
-< -- 5
-+ -- 146
-- -- 130
-* -- 389
-:= -- 971
-add.period$ -- 45
-call.type$ -- 15
-change.case$ -- 110
+            576 strings with 7383 characters,
+and the built_in function-call counts, 6377 in all, are:
+= -- 602
+> -- 421
+< -- 6
++ -- 166
+- -- 148
+* -- 444
+:= -- 1103
+add.period$ -- 51
+call.type$ -- 17
+change.case$ -- 125
 chr.to.int$ -- 0
-cite$ -- 18
-duplicate$ -- 198
-empty$ -- 329
-format.name$ -- 130
-if$ -- 1130
+cite$ -- 21
+duplicate$ -- 226
+empty$ -- 375
+format.name$ -- 148
+if$ -- 1289
 int.to.chr$ -- 0
-int.to.str$ -- 15
-missing$ -- 15
-newline$ -- 78
-num.names$ -- 30
-pop$ -- 116
+int.to.str$ -- 17
+missing$ -- 17
+newline$ -- 88
+num.names$ -- 34
+pop$ -- 133
 preamble$ -- 1
-purify$ -- 95
+purify$ -- 108
 quote$ -- 0
-skip$ -- 163
+skip$ -- 186
 stack$ -- 0
-substring$ -- 231
-swap$ -- 55
-text.length$ -- 5
+substring$ -- 265
+swap$ -- 63
+text.length$ -- 6
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 60
-warning$ -- 3
-while$ -- 45
-width$ -- 17
-write$ -- 154
-(There were 3 warnings)
+type$ -- 68
+warning$ -- 4
+while$ -- 52
+width$ -- 19
+write$ -- 174
+(There were 4 warnings)

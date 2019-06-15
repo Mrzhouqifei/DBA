@@ -1,5 +1,7 @@
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 def roc_auc(labels, losses):
     fpt, tpt, thresholds = roc_curve(labels, losses)
@@ -19,3 +21,16 @@ def roc_auc(labels, losses):
     fig.savefig('./output/roc.png', dpi=fig.dpi)
 
     return roc_auc
+
+def creterion_func(benign_losses, adv_losses):
+    benign_losses = benign_losses[:300]
+    adv_losses = adv_losses[:300]
+    creterion = pd.DataFrame([benign_losses, adv_losses])
+    creterion.to_csv('./output/creterion.csv', index=False)
+    fig = plt.figure()
+    plt.scatter(np.arange(len(benign_losses)), benign_losses, color='cornflowerblue', s=3, marker='o')
+    plt.scatter(np.arange(len(adv_losses)), adv_losses, color='crimson', s=3, marker='*')
+    plt.xticks([])
+    # plt.yticks([])
+    fig.savefig('creterion.png', dpi=400)
+    plt.show()

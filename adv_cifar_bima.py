@@ -155,7 +155,7 @@ def test(epoch, methods='fgsm', update=False):
         adv_outputs = net(x_adv)
         _, adv_predicted = adv_outputs.max(1)
         attack_correct += adv_predicted.eq(predicted).sum().item()
-        selected = (adv_predicted != targets).cpu().numpy()
+        selected = (adv_predicted != targets).cpu().numpy().astype(bool)
 
         # adv_fgsm
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=1/255)

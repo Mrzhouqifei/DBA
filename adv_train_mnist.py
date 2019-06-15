@@ -12,7 +12,7 @@ import numpy as np
 from adversary.fgsm import Attack
 from torch.autograd import Variable
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc
+from utils.roc_plot import roc_auc, creterion_func
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import torch
@@ -131,7 +131,7 @@ def test(epoch, methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -139,12 +139,12 @@ def test(epoch, methods='fgsm', update=False):
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
         benign_fgsm_correct += benign_fgsm_predicted.eq(predicted).sum().item()
-        # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
-        temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
+        temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
+        # temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
 
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
             x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=50, bim_a=True)
         elif methods == 'bim_b':
@@ -158,17 +158,19 @@ def test(epoch, methods='fgsm', update=False):
         adv_outputs = net(x_adv)
         _, adv_predicted = adv_outputs.max(1)
         attack_correct += adv_predicted.eq(predicted).sum().item()
-        selected = (adv_predicted != targets).cpu().numpy()
+        selected = (adv_predicted != targets).cpu().numpy().astype(bool)
 
         # adv_fgsm
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_MINIST)
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
-        # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
-        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
+        temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
+        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
 
         # select the examples which is attacked successfully
+        # temp1 = temp1.reshape(1, -1)
+        # temp2 = temp2.reshape(1, -1)
         temp1 = temp1[selected].reshape(1, -1)
         temp2 = temp2[selected].reshape(1, -1)
         if batch_idx != 0:
@@ -178,7 +180,7 @@ def test(epoch, methods='fgsm', update=False):
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
 
-        # if batch_idx > 0:
+        # if batch_idx > 2:
         #     break
 
     acc = correct/total
@@ -193,9 +195,14 @@ def test(epoch, methods='fgsm', update=False):
     adv_fgsm_loss = adv_fgsm_loss.reshape(-1)
 
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
+    print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
     labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
     auc_score = roc_auc(labels, losses)
     print('[ROC_AUC] score: %.2f%%' % (100.*auc_score))
+
+    # plot losses
+    creterion_func(benign_fgsm_loss, adv_fgsm_loss)
+
 
     # Save checkpoint.
     if auc_score >= best_acc and update:
@@ -230,5 +237,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='bim_b', update=True)
 
-    test(epoch, methods='bim_b', update=False)
+    test(epoch, methods='fgsm', update=False)
     break

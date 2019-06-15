@@ -128,6 +128,7 @@ def test(epoch, methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
+        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -140,7 +141,7 @@ def test(epoch, methods='fgsm', update=False):
 
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
             x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10, bim_a=True)
         elif methods == 'bim_b':
@@ -155,7 +156,7 @@ def test(epoch, methods='fgsm', update=False):
         adv_outputs = net(x_adv)
         _, adv_predicted = adv_outputs.max(1)
         attack_correct += adv_predicted.eq(predicted).sum().item()
-        selected = (adv_predicted != targets).cpu().numpy()
+        selected = (adv_predicted != targets).cpu().numpy().astype(bool)
 
         # adv_fgsm
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_CIFAR10)#

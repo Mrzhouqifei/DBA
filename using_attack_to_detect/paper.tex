@@ -52,31 +52,12 @@ leftmargin=7mm,labelsep=1.5mm,topsep=0mm,itemsep=-0.8mm}
 % authors names on the first line, and the last on the second line, try using
 % \AND instead of \And before the third author name.
 
+
 \author{%
-  Qifei Zhou \\ %\thanks{}
-  School of Software and Microelectronics\\
-  Peking University\\
-  Beijing 100871, China \\
+  Qifei Zhou$^1$\thanks{Prof. Qifei Zhou is the corresponding author.}, Yue Wu$^2$, Weiping Li$^1$, Tong Mo$^1$ \\ 
+  $^1$Peking University, $^2$Nanyang Technological University\\
   \texttt{qifeizhou@pku.edu.cn} \\
   % examples of more authors
-  \And
-  Weiping Li \\
-  School of Software and Microelectronics\\
-  Peking University\\
-  Beijing 100871, China \\
-  \texttt{wpli@ss.pku.edu.cn} \\
-  \AND
-  Tong Mo \\
-  School of Software and Microelectronics\\
-  Peking University\\
-  Beijing 100871, China \\
-  \texttt{motong@ss.pku.edu.cn} \\
-  \And
-  Yue Wu \\
-  Logistics Engineering \\
-  University of Science and Technology Beijing \\
-  Beijing 100083, China \\
-  \texttt{869216739@qq.com} \\
   % \And
   % Coauthor \\
   % Affiliation \\
@@ -98,7 +79,7 @@ leftmargin=7mm,labelsep=1.5mm,topsep=0mm,itemsep=-0.8mm}
 Both Deep nerual networks (DNNS) and Recurrent nerual networks (RNNS) are vulneralbe to adverisarial examples \cite{Szegedy2013Intriguing,Goodfellow2014Explaining,Papernot2016Transferability,papernot2016crafting}, imperceptible modifications to the original inputs of a classifier can cause the model to produce incorrect outputs. This problem is especially important in safety-critical applications such as self-driving cars. To illustrate how adversarial samples make a system based on DNNs vulnerable, consider the following 
 images \ref{car}:
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \centerline{
     \subfigure[prohibition sign]{\includegraphics[scale=0.3]{car.png}}
     \subfigure[fire sign]{\includegraphics[scale=0.3]{car.png}}
@@ -190,11 +171,62 @@ Here, k is a parameter control the misclassification confidence, we can find adv
 
 Papernot et al. \cite{papernot2016crafting} showed that the algrothims introduced previously to craft adversarial instances misclassified by feed-forward neural networks can be adapted to recurrent neural works. However, these methods can't be adapted to natural language processing tasks directly due to the finite set of word embeddings. That's to say that we can't modify the word embeddings casually, because we may not find a real word corresponding to the modified word embeddings. They followed a heuristic procedure to solve the problem. They iteratively find a word $\vec{z}$ in words set that the sign of the difference between the embeddings of $\vec{z}$ and the original input word is closet to $sgn(J_f(\vec{x})[i,f(\vec{x})])$. Eventually, they achieved an error rate of 100\% by changing 9.18 words in 71.06-word-long sentences on average. Later on, we will discuss our method based on Jacobian which perform better in the next section.
 
-
-
 \section{Undercover Attack}
 
+Armed with introduction of adversarial attacks on DNNs and RNNs, we now introduce \emph{Undercover Attack} aims to distinguish adversarial examples from 
+normal ones. We notice that most defensive methods can be easily evaded by specific attacks, howerver, attack methods can always succeed with much less effort. That's to say, defense is much harder. Our detection method was inspired this characteristic, We utilize this feature to design \emph{Undercover Attack}. If you want to find an adversarial sample which can bypass \emph{Undercover Attack}, you need to take two steps: First, you need to craft an adversarial sample that fool the model successfully. Second, you should make the adversarial sample be robust to our specific attack mechanism which means if we modify the adversarial sample slightly, the predicted class of the sample won't change. For example, there is a image of cat, and you modify some pixels of the image (we get adv sample1) which successfully fool the model to recognize it as a plane. You need to guarantee that if we change some pixels of adv sample1 (we get adv sample2), the model can still classify it as a plane, not a cat or anything else. Adv sample1 is not easy to find, because we need to make it be robust to a fake class. That's to say, we need to find an adversarial sample always classified as a same fake class by the target model when facing new attacks. This's theoretically impossiable, there must be at least one original sample which adv sample1 crafted from can deny this hypothesis. And we will prove that adversarial examples is in fact more vulnerable than normal ones when feed to DNNs and RNNs.
+
+\subsection{Vulnerability Of Adversarial Examples}
+
+In this section, we will analyze the the vulnerability both empirically and experomentally. For an effective model, we believe that it perform correctly on most of examples. This indicate that the normal space is larger than any other target adversarial space. Our analysis is based on the hypothesis and our experiments proved this view to some extent. The model input x must be an normal input or an adversarial input as is shown in \ref{space}.
+
+% 可以引用密度估计
+\begin{figure}[ht]
+  \centerline{
+    \subfigure[normal input]{\includegraphics[scale=0.5]{normal_space}}
+    \subfigure[adversarial input]{\includegraphics[scale=0.5]{adversarial_space}}
+  }
+  \caption{(a): The input is an normal example. (b): The input is an adversarial example.}
+  \label{space}
+\end{figure}
+
+Figure \ref{space}(a) represents the input is in normal space and it needs relatively large modification to become an adversarial sample. Figure \ref{space}(b) shows that the input is an adversarial sample, the adversarial space is much smaller than the normal one, so it won't take too much effort to modify the input back to the normal space (target I) or the other target adversarial space (target II, III or IV).
+
+\subsection{Criteria for identification of adversaries}
+
+To quantify the vulnerability of the sample, we apply an undercover attack to the model and measure the difference between the outputs of the original example and modified example. To illustrate, if we get an example $A$ and want to know whether it is an adversarial example or not. First, We feed $A$ to the target model and get the output logits (logits I). Then, we apply undercover attack to A and get $A^*$. The next, we feed $A^*$ to the target model to get the output logits (logits II). In the last, we caculate the difference between logist I and logits II to judge if A is an adversarial sample. Here, the logits are the probabilities of each class which are the softmax outputs of the last dense layer.
+
+\begin{equation}
+ 	S_i = \frac{e^i}{\sum\limits_{j=1}^{C}e^j}
+\end{equation}
+
+We design two criterion functions to represent the difference between logit I and logit II.
+
+\begin{equation}
+	\begin{array}{lcl}
+		t = onehot(argmax(L)) \\
+	 	f_1(L,L^{'})=\sum\limits_{i=1}^{C}t(i)log(L^{'}_i) \\
+	 	f_2(L,L^{'})=\sum\limits_{i=1}^{C}(L_i-L^{'}_i)^2
+	 \end{array}
+\end{equation}
+
+Here, $L$ is logits I, $L^{'}$ is logits II, t is the one-hot code of the predicted class of $A$, $f_1(\cdot)$ is the negative Cross Entropy of t, and $f_2(\cdot)$ is the Euclidean Distance between $L$ and $L^{'}$. We can choose either $f_1(\cdot)$ or $f_2(\cdot)$ as the creterion function. $f_2(\cdot)$ reprsents the difference of the whole distribution of $L$ and $L^{'}$, while $f_1(\cdot)$ focus on the change of the main class. The two criterions aim at detection of different types of adversaries. In most of our experiments, $f_1(\cdot)$ performs a little bit better.
+
+\begin{figure}[ht]
+  \centerline{\includegraphics[scale=0.5]{creterion}}
+  \caption{The framework of undercover attack on DNNs and RNNs.}
+  \label{creterion}
+\end{figure}
+
 \section{Experiments}
+
+\begin{figure}[ht]
+  \centerline{\includegraphics[scale=0.5]{architecture}}
+  \caption{The framework of undercover attack on DNNs and RNNs.}
+  \label{framework}
+\end{figure}
+
+
 
 
 \section{Conclusion}

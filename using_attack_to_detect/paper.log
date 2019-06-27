@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2019.2.1)  14 JUN 2019 22:09
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018) (preloaded format=pdflatex 2019.2.1)  21 JUN 2019 19:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -420,11 +420,7 @@ Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style
 \ALG@tmplength=\skip64
 )
 Document Style - pseudocode environments for use with the `algorithmicx' style
-) (./paper.aux
-
-LaTeX Warning: Label `framework' multiply defined.
-
-)
+) (./paper.aux)
 \openout1 = `paper.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 68.
@@ -655,11 +651,11 @@ File: creterion.png Graphic file (type png)
 <use creterion.png>
 Package pdftex.def Info: creterion.png  used on input line 216.
 (pdftex.def)             Requested size: 216.80946pt x 144.53964pt.
-<architecture.png, id=152, 712.03722pt x 468.37279pt>
+<architecture.png, id=152, 725.85934pt x 476.27115pt>
 File: architecture.png Graphic file (type png)
 <use architecture.png>
 Package pdftex.def Info: architecture.png  used on input line 224.
-(pdftex.def)             Requested size: 356.01773pt x 234.1858pt.
+(pdftex.def)             Requested size: 362.92879pt x 238.13498pt.
  (./paper.bbl [5 <./creterion.png>] [6 <./architecture.png>])
 Package atveryend Info: Empty hook `BeforeClearDocument' on input line 254.
  [7]
@@ -669,16 +665,12 @@ Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 254.
 Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 254.
 Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 9E7734C9D7D72DFD3FDAAE0D8C9D4276;849.
-
-
-LaTeX Warning: There were multiply-defined labels.
-
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 254.
  ) 
 Here is how much of TeX's memory you used:
  10826 strings out of 492649
  167185 string characters out of 6129623
- 296576 words of memory out of 5000000
+ 296620 words of memory out of 5000000
  14303 multiletter control sequences out of 15000+600000
  41515 words of font info for 168 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -699,7 +691,7 @@ st/fonts/type1/public/cm-super/sftt1000.pfb></usr/local/texlive/2018/texmf-dist
 /fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2018/texmf-dist/fonts/typ
 e1/urw/times/utmr8a.pfb></usr/local/texlive/2018/texmf-dist/fonts/type1/urw/tim
 es/utmri8a.pfb>
-Output written on paper.pdf (7 pages, 568755 bytes).
+Output written on paper.pdf (7 pages, 571816 bytes).
 PDF statistics:
  237 PDF objects out of 1000 (max. 8388607)
  203 compressed objects within 3 object streams

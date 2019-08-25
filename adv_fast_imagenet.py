@@ -260,9 +260,9 @@ def test(methods='fgsm'):
             adv_fgsm_loss = temp2
         print(batch_idx)
 
-        total_attack_sucess += len(selected)
-        benign_fgsm_correct += benign_fgsm_predicted[selected].eq(predicted[selected]).sum().item()
-        adv_fgsm_correct += adv_fgsm_predicted[selected].eq(adv_predicted[selected]).sum().item()
+        total_attack_sucess += len(temp1[0])
+        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
+        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
 
     acc = correct/total
     attack_acc = attack_correct / total_right

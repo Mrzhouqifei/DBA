@@ -32,10 +32,10 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_CIFAR10, shuffle=True, num_workers=NUM_WORKERS)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_CIFAR10, shuffle=False, num_workers=NUM_WORKERS)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -57,6 +57,7 @@ start_epoch = checkpoint['epoch']
 best_acc = checkpoint['acc']
 if best_acc > 90:
     best_acc = best_acc / 100
+print(start_epoch)
 print('best_acc: %.2f%%' % (100.*best_acc))
 
 l2dist = PairwiseDistance(2)
@@ -228,5 +229,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    test(epoch, methods='bim_b', update=False)
+    test(epoch, methods='cw', update=False)
     break

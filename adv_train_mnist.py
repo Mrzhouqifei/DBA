@@ -35,7 +35,7 @@ trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True, num_workers=NUM_WORKERS)
 
 testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST, shuffle=False, num_workers=NUM_WORKERS)
+testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST_TEST, shuffle=False, num_workers=NUM_WORKERS)
 
 
 # Model
@@ -53,6 +53,7 @@ assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
 checkpoint = torch.load(MNIST_CKPT)
 net.load_state_dict(checkpoint['net'])
 start_epoch = checkpoint['epoch']
+print(start_epoch)
 try:
     best_acc = checkpoint['auc_score']
     if best_acc > 90:
@@ -234,5 +235,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    test(epoch, methods='bim_a', update=False)
+    test(epoch, methods='jsma', update=False)
     break

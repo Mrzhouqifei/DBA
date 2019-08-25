@@ -159,7 +159,7 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
         scores = scores_mask.float() * (-target_sum * other_sum) * zero_diagonal
 
         # Extract the best two pixels
-        best = torch.argmax(scores.reshape(-1, nb_features * nb_features), dim=1)
+        best = torch.argmax(scores.reshape(-1, nb_features * nb_features), dim=1).cpu()
 
         p1 = np.mod(best, nb_features)
         p2 = np.floor_divide(best, nb_features)

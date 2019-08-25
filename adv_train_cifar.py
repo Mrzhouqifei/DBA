@@ -128,7 +128,7 @@ def test(epoch, methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm

@@ -3,23 +3,27 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 NUM_CLASSES = 10
 BATCH_SIZE = 256
+BATCH_SIZE_MNIST = 1024
 
-LOAD_CKPT = False # pre_train
-NUM_EPOCHS = 20
+LOAD_CKPT = True # pre_train
+NUM_EPOCHS = 50
 LEARNING_RATE = 0.001
-SCHEDULER_STEP_SIZE = 20
+SCHEDULER_STEP_SIZE = 200
 
 EPS_MINIST = 0.15
 EPS_CIFAR10 = 8/255
 
 NUM_WORKERS = 8
-# resnet       resnet_98.49%.pth     resnet_bima97.54%.pth
+
 CLASSIFY_CKPT = './checkpoint/resnet-Copy1.pth'
-# conv      conv_97.79%     conv_bima99.85%.pth
-MNIST_CKPT = './checkpoint/conv-Copy1.pth'
+
+# conv 53
+MNIST_CKPT = './checkpoint/conv_adv.pth'
 
 MOIVE_CKPT = 'checkpoint/model-Copy1.pth'
 MOIVE_CKPT_ADV_TRAINING = 'checkpoint/model_adv.pth'
+
+IMAGENET_CKPT = 'checkpoint/imageNet.pth'
 
 
 

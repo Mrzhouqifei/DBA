@@ -1,4 +1,4 @@
-This is BibTeX, Version 0.99d (TeX Live 2018)
+This is BibTeX, Version 0.99d (TeX Live 2019)
 Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
 The top-level auxiliary file: paper.aux
 The style file: plain.bst
@@ -7,45 +7,46 @@ Warning--empty journal in Carlini2016Towards
 Warning--empty journal in He2017Adversarial
 Warning--empty journal in Kurakin2016Adversarial
 Warning--empty journal in Papernot2016Transferability
-You've used 17 entries,
+Warning--empty journal in Szegedy2016Inception
+You've used 19 entries,
             2118 wiz_defined-function locations,
-            576 strings with 7383 characters,
-and the built_in function-call counts, 6377 in all, are:
-= -- 602
-> -- 421
-< -- 6
-+ -- 166
-- -- 148
-* -- 444
-:= -- 1103
-add.period$ -- 51
-call.type$ -- 17
-change.case$ -- 125
+            585 strings with 7744 characters,
+and the built_in function-call counts, 7164 in all, are:
+= -- 679
+> -- 467
+< -- 7
++ -- 184
+- -- 164
+* -- 497
+:= -- 1232
+add.period$ -- 57
+call.type$ -- 19
+change.case$ -- 139
 chr.to.int$ -- 0
-cite$ -- 21
-duplicate$ -- 226
-empty$ -- 375
-format.name$ -- 148
-if$ -- 1289
+cite$ -- 24
+duplicate$ -- 256
+empty$ -- 424
+format.name$ -- 164
+if$ -- 1453
 int.to.chr$ -- 0
-int.to.str$ -- 17
-missing$ -- 17
-newline$ -- 88
-num.names$ -- 34
-pop$ -- 133
+int.to.str$ -- 19
+missing$ -- 19
+newline$ -- 98
+num.names$ -- 38
+pop$ -- 149
 preamble$ -- 1
-purify$ -- 108
+purify$ -- 120
 quote$ -- 0
-skip$ -- 186
+skip$ -- 212
 stack$ -- 0
-substring$ -- 265
-swap$ -- 63
-text.length$ -- 6
+substring$ -- 307
+swap$ -- 73
+text.length$ -- 7
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 68
-warning$ -- 4
-while$ -- 52
-width$ -- 19
-write$ -- 174
-(There were 4 warnings)
+type$ -- 76
+warning$ -- 5
+while$ -- 59
+width$ -- 21
+write$ -- 194
+(There were 5 warnings)

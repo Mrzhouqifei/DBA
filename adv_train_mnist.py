@@ -32,10 +32,10 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True, num_workers=NUM_WORKERS)
 
 testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST, shuffle=False, num_workers=NUM_WORKERS)
 
 
 # Model
@@ -131,7 +131,7 @@ def test(epoch, methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -139,8 +139,9 @@ def test(epoch, methods='fgsm', update=False):
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
         benign_fgsm_correct += benign_fgsm_predicted.eq(predicted).sum().item()
-        temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
-        # temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
+        # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
+        # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1)[:, predicted], F.softmax(outputs, dim=1)[:, predicted]).detach().cpu().numpy()
+        temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
 
         # attack begin
         if methods == 'fgsm':
@@ -165,12 +166,11 @@ def test(epoch, methods='fgsm', update=False):
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
-        temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
-        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
+        # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
+        # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1)[:, adv_predicted], F.softmax(adv_outputs, dim=1)[:, adv_predicted]).detach().cpu().numpy()
+        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
 
         # select the examples which is attacked successfully
-        # temp1 = temp1.reshape(1, -1)
-        # temp2 = temp2.reshape(1, -1)
         temp1 = temp1[selected].reshape(1, -1)
         temp2 = temp2[selected].reshape(1, -1)
         if batch_idx != 0:
@@ -179,9 +179,6 @@ def test(epoch, methods='fgsm', update=False):
         else:
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
-
-        # if batch_idx > 2:
-        #     break
 
     acc = correct/total
     attack_acc = attack_correct / total_right
@@ -235,7 +232,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # fgsm, bim_a, bim_b, jsma, cw
     # train(epoch)
-    # test(epoch, methods='bim_b', update=True)
+    # test(epoch, methods='fgsm', update=True)
 
-    test(epoch, methods='fgsm', update=False)
+    test(epoch, methods='bim_a', update=False)
     break

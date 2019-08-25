@@ -9,4 +9,8 @@
 \BOOKMARK [2][-]{subsection.3.1}{Vulnerability Of Adversarial Examples}{section.3}% 9
 \BOOKMARK [2][-]{subsection.3.2}{Criteria for identification of adversaries}{section.3}% 10
 \BOOKMARK [1][-]{section.4}{Experiments}{}% 11
-\BOOKMARK [1][-]{section.5}{Conclusion}{}% 12
+\BOOKMARK [2][-]{subsection.4.1}{Network Setup}{section.4}% 12
+\BOOKMARK [2][-]{subsection.4.2}{Performance of Undercover Attack On Image classification Tasks}{section.4}% 13
+\BOOKMARK [2][-]{subsection.4.3}{Intrinsic Properties Of Adverisarial Examples}{section.4}% 14
+\BOOKMARK [2][-]{subsection.4.4}{Undercover Attack On RNNs}{section.4}% 15
+\BOOKMARK [1][-]{section.5}{Conclusion}{}% 16

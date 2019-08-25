@@ -17,8 +17,8 @@ class Model(torch.nn.Module):
         hidden = self.init_hidden()
         if not after_embedding:
             embeddings = self.embeddings(inputs).view(len(inputs), 1, -1)
-            var_embeddings = embeddings
-            # var_embeddings = Variable(embeddings, requires_grad=True)
+            # var_embeddings = embeddings
+            var_embeddings = Variable(embeddings, requires_grad=True)
         else:
             var_embeddings = inputs
         lstm_out, (hn, cn) = self.lstm(var_embeddings, hidden)

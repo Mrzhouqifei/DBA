@@ -40,6 +40,11 @@ Ian~J. Goodfellow, Jonathon Shlens, and Christian Szegedy.
 \newblock Explaining and harnessing adversarial examples.
 \newblock {\em Computer Science}, 2014.
 
+\bibitem{he2016identity}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock Identity mappings in deep residual networks.
+\newblock {\em european conference on computer vision}, pages 630--645, 2016.
+
 \bibitem{He2017Adversarial}
 Warren He, James Wei, Xinyun Chen, Nicholas Carlini, and Dawn Song.
 \newblock Adversarial example defenses: Ensembles of weak defenses are not
@@ -86,6 +91,12 @@ Nicolas Papernot, Patrick~D Mcdaniel, Xi~Wu, Somesh Jha, and Ananthram Swami.
 \newblock Distillation as a defense to adversarial perturbations against deep
   neural networks.
 \newblock {\em ieee symposium on security and privacy}, pages 582--597, 2016.
+
+\bibitem{Szegedy2016Inception}
+Christian Szegedy, Sergey Ioffe, Vincent Vanhoucke, and Alex Alemi.
+\newblock Inception-v4, inception-resnet and the impact of residual connections
+  on learning.
+\newblock 2016.
 
 \bibitem{Szegedy2013Intriguing}
 Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan,

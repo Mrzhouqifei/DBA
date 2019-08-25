@@ -97,6 +97,8 @@ for epoch in range(NUM_EPOCHS):
     advloss_list = []
     for idx, lines in enumerate(f):
         if idx > 0:
+            # if idx <= 20000: #20000
+            #     continue
             data = lines.split('\t')[2]
             data = normalizeString(data).strip()
             input_data = [word_dict[word] for word in data.split(' ')]
@@ -106,7 +108,7 @@ for epoch in range(NUM_EPOCHS):
             target = int(lines.split('\t')[1])
             target_data = Variable(torch.LongTensor([target])).to(device)
 
-            if idx <= 20000:
+            if idx <= 20000: #20000
                 _, input_data_embedding = model(input_data)
                 benign_undercover = FGSM(input_data_embedding, target_data, eps=0.01)
 
@@ -144,6 +146,8 @@ for epoch in range(NUM_EPOCHS):
                 total += 1
             if idx % 2000==1:
                 print('epoch: %d, idx: %d' % (epoch, idx))
+            # if idx == 100:
+            #     break
 
     print('-'*30)
     print('eopch: ', epoch)

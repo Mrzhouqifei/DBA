@@ -113,6 +113,7 @@ def test(epoch, methods='fgsm', update=False):
     correct = 0
     total = 0
     total_right = 0
+    total_attack_sucess = 0
     benign_fgsm_correct = 0
     adv_fgsm_correct = 0
     attack_correct = 0
@@ -139,7 +140,6 @@ def test(epoch, methods='fgsm', update=False):
         benign_fgsm = FGSM(inputs, predicted, eps=EPS_MINIST)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
-        benign_fgsm_correct += benign_fgsm_predicted.eq(predicted).sum().item()
         # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
         # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1)[:, predicted], F.softmax(outputs, dim=1)[:, predicted]).detach().cpu().numpy()
         temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
@@ -166,7 +166,7 @@ def test(epoch, methods='fgsm', update=False):
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_MINIST)
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
-        adv_fgsm_correct += adv_fgsm_predicted.eq(adv_predicted).sum().item()
+
         # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
         # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1)[:, adv_predicted], F.softmax(adv_outputs, dim=1)[:, adv_predicted]).detach().cpu().numpy()
         temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() #
@@ -180,11 +180,17 @@ def test(epoch, methods='fgsm', update=False):
         else:
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
+        # if batch_idx == 5:
+        #     break
+
+        total_attack_sucess += len(selected)
+        benign_fgsm_correct += benign_fgsm_predicted[selected].eq(predicted[selected]).sum().item()
+        adv_fgsm_correct += adv_fgsm_predicted[selected].eq(adv_predicted[selected]).sum().item()
 
     acc = correct/total
     attack_acc = attack_correct / total_right
-    benign_fgsm_acc = benign_fgsm_correct/ total_right
-    adv_fgsm_acc = adv_fgsm_correct / total_right
+    benign_fgsm_acc = benign_fgsm_correct/ total_attack_sucess
+    adv_fgsm_acc = adv_fgsm_correct / total_attack_sucess
     print('-'*20,total,total_right)
     print('valid acc: %.2f%%' % (100.*acc))
     print('attact acc: %.2f%% L2 perturbation: %.2f' % (100.*attack_acc, l2sum/total_right))
@@ -235,5 +241,5 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    test(epoch, methods='jsma', update=False)
+    test(epoch, methods='cw', update=False)
     break

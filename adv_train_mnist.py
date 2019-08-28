@@ -148,9 +148,9 @@ def test(epoch, methods='fgsm', update=False):
         if methods == 'fgsm':
             x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=50, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50, bim_a=True)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST, alpha=1 / 255, iteration=50)
+            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50)
         elif methods == 'jsma':
             x_adv = jsma_attack.generate(inputs, y=predicted)
         else:
@@ -241,7 +241,7 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    methods = 'cw'
+    methods = 'bim_a'
     print('MNIST ',methods)
     test(epoch, methods=methods, update=False)
     break

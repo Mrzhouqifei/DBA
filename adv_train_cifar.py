@@ -226,9 +226,11 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
+
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
-    methods = 'bim_b'
+
+    methods = 'jsma'
     print('CIFAR10 ',methods)
     test(epoch, methods=methods, update=False)
     break

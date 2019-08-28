@@ -46,7 +46,7 @@ print('starting training')
 20001~25000 test
 """
 
-for i in range(NUM_EPOCHS):
+for i in range(20):
     sum_loss = 0.0
     right = 0
     for idx, lines in enumerate(f):
@@ -62,6 +62,7 @@ for i in range(NUM_EPOCHS):
             target_data = Variable(torch.LongTensor([target])).to(device)
 
             if idx <= 20000:
+                model.train()
                 y_pred, embeddings = model(input_data)
                 model.zero_grad()
                 loss = loss_function(y_pred, target_data)
@@ -71,6 +72,7 @@ for i in range(NUM_EPOCHS):
                 # embeddings.grad.data.fill_(0)
                 optimizer.step()
             elif idx > 20000:
+                model.eval()
                 y_pred, embeddings = model(input_data)
                 _, predicted = y_pred.max(1)
                 right += predicted.eq(target).sum().item()

@@ -109,6 +109,7 @@ for epoch in range(NUM_EPOCHS):
             target_data = Variable(torch.LongTensor([target])).to(device)
 
             if idx <= 20000: #20000
+                model.train()
                 _, input_data_embedding = model(input_data)
                 benign_undercover = FGSM(input_data_embedding, target_data, eps=0.01)
 
@@ -123,6 +124,7 @@ for epoch in range(NUM_EPOCHS):
                 loss.backward()
                 optimizer.step()
             elif idx > 20000:
+                model.eval()
                 y_pred, embeddings = model(input_data)
                 _, predicted = y_pred.max(1)
 

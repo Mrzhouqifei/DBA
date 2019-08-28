@@ -144,6 +144,7 @@ def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False):
 
 
 def train(epoch, method='fgsm'):
+    net.train()
     print('-' * 30)
     print('\nEpoch: %d' % epoch)
     correct = 0
@@ -258,8 +259,10 @@ def test(methods='fgsm'):
         print('batch:',batch_idx)
 
         total_attack_sucess += len(temp1[0])
-        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
-        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
+        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],
+                                        (predicted.cpu().numpy()[selected])).sum()
+        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],
+                                     (adv_predicted.cpu().numpy()[selected])).sum()
 
     acc = correct/total
     attack_acc = attack_correct / total_right

@@ -4,8 +4,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASSES = 10
 BATCH_SIZE = 256
 BATCH_SIZE_MNIST = 256
-BATCH_SIZE_MNIST_TEST = 128 #1024
-BATCH_SIZE_CIFAR10 = 128
+BATCH_SIZE_MNIST_TEST = 1024 #128
+BATCH_SIZE_CIFAR10 = 25 # jsma 32 +cw 64
 
 LOAD_CKPT = True # pre_train
 NUM_EPOCHS = 100

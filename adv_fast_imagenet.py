@@ -77,6 +77,7 @@ net = model
 # if not os.path.isdir('checkpoint'):
 #     os.mkdir('checkpoint')
 # torch.save(state, 'checkpoint/ImageNet_fast.pth')
+
 checkpoint = torch.load('checkpoint/ImageNet_fast.pth')
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
@@ -84,12 +85,11 @@ print('best_acc: %.2f%%' % (100. * best_acc))
 net.to(device)
 print('load success')
 
-# In[ ]:
 
 
 # train dataloader
 train_dataset = torchvision.datasets.ImageFolder(root=rootpath + 'dataset0_pre', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=28, shuffle=True, num_workers=4)
+trainloader = DataLoader(train_dataset, batch_size=26, shuffle=True, num_workers=4)
 
 # In[ ]:
 
@@ -108,7 +108,7 @@ labels = ImageId.merge(labels_init, on='ImageId')
 # In[ ]:
 
 
-EPSILON = 16 / 255
+EPSILON = 8 / 255 * (1 - -1)
 l2dist = PairwiseDistance(2)
 criterion_none = nn.CrossEntropyLoss(reduction='none')
 criterion = nn.CrossEntropyLoss()
@@ -143,6 +143,7 @@ def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False):
 
 
 def train(epoch, method='fgsm'):
+    net.train()
     print('-' * 30)
     print('\nEpoch: %d' % epoch)
     correct = 0
@@ -170,7 +171,6 @@ def train(epoch, method='fgsm'):
     acc = correct / total
     print('train acc: %.2f%%' % (100. * acc))
 
-    # test(methods=method)
     # state = {
     #     'net': net.state_dict(),
     #     'acc': 0,
@@ -186,7 +186,6 @@ def train(epoch, method='fgsm'):
 
 def test(methods='fgsm'):
     global best_acc
-    net.cuda()
     net.eval()
     correct = 0
     total = 0
@@ -227,7 +226,7 @@ def test(methods='fgsm'):
         if methods == 'fgsm':
             x_adv = FGSM(inputs, predicted, eps=EPSILON*2, alpha=2 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=2 / 255, iteration=10, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=2 / 255, iteration=20, bim_a=True)
         elif methods == 'bim_b':
             x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=2 / 255, iteration=20)
         # elif methods == 'jsma':
@@ -258,11 +257,13 @@ def test(methods='fgsm'):
         else:
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
-        print(batch_idx)
+        # print(batch_idx)
 
         total_attack_sucess += len(temp1[0])
-        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
-        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
+        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],
+                                        (predicted.cpu().numpy()[selected])).sum()
+        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],
+                                     (adv_predicted.cpu().numpy()[selected])).sum()
 
     acc = correct/total
     attack_acc = attack_correct / total_right
@@ -295,8 +296,7 @@ def test(methods='fgsm'):
 
 # In[ ]:
 
-# for i in range(20):
+# for i in range(50):
 #     train(i)
 #     test('fgsm')
 test('cw')
-

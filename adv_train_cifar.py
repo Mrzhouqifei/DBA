@@ -15,6 +15,7 @@ from torch.nn.modules.distance import PairwiseDistance
 from utils.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
+import random
 
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
@@ -104,7 +105,7 @@ def train(epoch):
     acc = correct / total
     print('train acc: %.2f%%' % (100.*acc))
 
-def test(epoch, methods='fgsm', update=False):
+def test(epoch, methods='fgsm', update=False, random_method=False):
     global best_acc
     net.eval()
     correct = 0
@@ -140,6 +141,18 @@ def test(epoch, methods='fgsm', update=False):
         # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
         temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
 
+        if random_method:
+            tag = random.randint(0, 4)
+            if tag == 0:
+                methods = 'fgsm'
+            elif tag == 1:
+                methods = 'bim_a'
+            elif tag == 2:
+                methods = 'bim_b'
+            elif methods == 3:
+                methods = 'jsma'
+            else:
+                methods = 'cw'
         # attack begin
         if methods == 'fgsm':
             x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10*2, alpha=1 / 255, iteration=1)
@@ -194,6 +207,8 @@ def test(epoch, methods='fgsm', update=False):
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
     labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
     auc_score = roc_auc(labels, losses)
+    print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
+    print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
     # Save checkpoint.
@@ -230,7 +245,7 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    methods = 'jsma'
+    methods = 'fgsm'
     print('CIFAR10 ',methods)
-    test(epoch, methods=methods, update=False)
+    test(epoch, methods=methods, update=False, random_method=True)
     break

@@ -162,6 +162,7 @@ for epoch in range(NUM_EPOCHS):
     losses = np.concatenate((benignloss_list, advloss_list), axis=0)
     labels = np.concatenate((np.ones_like(benignloss_list), np.zeros_like(advloss_list)), axis=0)
     auc_score = roc_auc(labels, losses)
+    print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
     if auc_score > best_acc:

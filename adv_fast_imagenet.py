@@ -279,6 +279,8 @@ def test(methods='fgsm'):
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
     labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
     auc_score = roc_auc(labels, losses)
+    print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
+    print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
     # Save checkpoint.

@@ -27,6 +27,23 @@ class Attack(object):
         x_adv = torch.clamp(x_adv, x_val_min, x_val_max)
         return x_adv
 
+    def mini_imagenet__train_fgsm(self, x, y, targeted=False, eps=8/255, x_val_min=0, x_val_max=1):
+        x_adv = Variable(x.data, requires_grad=True)
+        h_adv = self.net(x_adv)[0]
+        if targeted:
+            cost = -self.criterion(h_adv, y)
+        else:
+            cost = self.criterion(h_adv, y)
+
+        self.net.zero_grad()
+        if x_adv.grad is not None:
+            x_adv.grad.data.fill_(0)
+        cost.backward()
+
+        x_adv = x_adv + eps*x_adv.grad.sign_()
+        x_adv = torch.clamp(x_adv, x_val_min, x_val_max)
+        return x_adv
+
     """
     BIM_a
     """
@@ -102,8 +119,6 @@ class Attack_MOVIE(object):
 
         x_adv = x_adv + eps*x_adv.grad.sign_()
         return x_adv
-
-
 
 
 def where(cond, x, y):

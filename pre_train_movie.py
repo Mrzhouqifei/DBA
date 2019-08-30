@@ -69,7 +69,6 @@ for i in range(20):
                 sum_loss += loss.data.item()
 
                 loss.backward()
-                # embeddings.grad.data.fill_(0)
                 optimizer.step()
             elif idx > 20000:
                 model.eval()

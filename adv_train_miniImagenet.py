@@ -8,8 +8,10 @@ import gc
 import re
 import shutil
 import pynvml
+import torchvision
 
 pynvml.nvmlInit()
+from settings import *
 
 import time
 from torch.utils.data import DataLoader
@@ -30,85 +32,41 @@ from utils.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-rootpath = '/home/qifeiz/ImageNetData/competition0723/'
+import torchvision.models as models
 
-# In[ ]:
+rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/miniImagenet-20/'
 
+inceptionv3 = models.inception_v3(pretrained=True)
+fc_features = inceptionv3.fc.in_features
+inceptionv3.fc = nn.Linear(fc_features, 20)
 
-# label 预处理之后与比赛方提供的一致
-labels_init = pd.read_csv(rootpath + 'dataset0.csv')[['ImageId', 'TrueLabel', 'TargetClass']]
-labels_init['TrueLabel'] = labels_init['TrueLabel'] - 1
-labels_init['TargetClass'] = labels_init['TargetClass'] - 1
-
-# Load Imagenet Synsets
-with open(rootpath + 'imagenet_synsets.txt', 'r') as f:
-    synsets = f.readlines()
-synsets = [x.strip() for x in synsets]
-splits = [line.split(' ') for line in synsets]
-key_to_classname = {spl[0]: ' '.join(spl[1:]) for spl in splits}
-with open(rootpath + 'imagenet_classes.txt', 'r') as f:
-    class_id_to_key = f.readlines()
-class_id_to_key = [x.strip() for x in class_id_to_key]
-
-# # 预处理图片
-class_names = list(pd.read_table(rootpath + 'imagenet_classes.txt', header=None)[0])
-if not os.path.exists(rootpath + 'dataset0_pre/'):
-    os.mkdir(rootpath + 'dataset0_pre/')
-for class_name in class_names:
-    if not os.path.exists(rootpath + 'dataset0_pre/' + class_name):
-        os.mkdir(rootpath + 'dataset0_pre/' + class_name)
-for i in range(len(labels_init)):
-    true_class_name = class_id_to_key[labels_init.TrueLabel[i]]
-    shutil.copy(rootpath + 'dataset0/' + labels_init.ImageId[i] + '.png', rootpath + 'dataset0_pre/' + true_class_name)
-
-# In[ ]:
-
-
-model = pretrainedmodels.__dict__['inceptionv4'](num_classes=1000, pretrained='imagenet')  # .to(device)
-tf_img = utils.TransformImage(model, scale=1, random_crop=False, random_hflip=False, random_vflip=False,
+tf_img = utils.TransformImage(pretrainedmodels.__dict__['inceptionv3'](num_classes=1000, pretrained='imagenet'),
+                              scale=0.875, random_crop=False, random_hflip=False, random_vflip=False,
                               preserve_aspect_ratio=True)
-net = model
+net = inceptionv3
 # state = {
-#     'net': model.state_dict(),
+#     'net': net.state_dict(),
 #     'acc': 0,
 #     'epoch': 0,
 # }
 # if not os.path.isdir('checkpoint'):
 #     os.mkdir('checkpoint')
-# torch.save(state, 'checkpoint/ImageNet.pth')
-total_epoch = -1
-checkpoint = torch.load('checkpoint/ImageNet.pth')
+# torch.save(state, MINI_IMAGENET_CKPT)
+checkpoint = torch.load(ADV_MINI_IMAGENET_CKPT)
 net.load_state_dict(checkpoint['net'])
 best_acc = checkpoint['acc']
-print('best_acc: %.2f%%' % (100. * best_acc))
+total_epoch = checkpoint['epoch']
+print('best_acc: %.2f%%' % best_acc)
 net.to(device)
 print('load success')
 
-# In[ ]:
-
-
 # train dataloader
-train_dataset = torchvision.datasets.ImageFolder(root='/home/qifeiz/ImageNetData/ILSVRC/Data/CLS-LOC/train',
-                                                 transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=26, shuffle=True, num_workers=4)
+train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
+trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20//2, shuffle=True, num_workers=4)
 
-# In[ ]:
-
-
-# validate dataloader
-dataset = torchvision.datasets.ImageFolder(root=rootpath + 'dataset0_pre', transform=tf_img)
-dataset_loader = DataLoader(dataset, batch_size=10, shuffle=False, num_workers=4)
-
-ImageIds = []
-for x in dataset.imgs:
-    ImageIds.append(x[0][-20:-4])
-ImageId = pd.DataFrame(ImageIds)
-ImageId.columns = ['ImageId']
-labels = ImageId.merge(labels_init, on='ImageId')
-
-# In[ ]:
-
+# test dataloader
+dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
+testloader = DataLoader(dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20//4, shuffle=False, num_workers=4)
 
 EPSILON = 8 / 255 * (1 - -1 )
 l2dist = PairwiseDistance(2)
@@ -123,26 +81,23 @@ cw_attack = cw.L2Adversary(targeted=False,
                            box=(-1, 1),
                            optimizer_lr=0.001)
 
-# In[ ]:
-
-
-def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False):
+def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False, train=False):
     x = Variable(x.to(device), requires_grad=False)
     y_true = Variable(y_true.to(device), requires_grad=False)
 
-    if iteration == 1:
-        x_adv = bim_attack.fgsm(x, y_true, False, eps, x_val_min=-1, x_val_max=1)
+    if train:
+        x_adv = bim_attack.mini_imagenet__train_fgsm(x, y_true, False, eps, x_val_min=-1, x_val_max=1)
     else:
-        if bim_a:
-            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
+        if iteration == 1:
+            x_adv = bim_attack.fgsm(x, y_true, False, eps, x_val_min=-1, x_val_max=1)
         else:
-            x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
+            if bim_a:
+                x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
+            else:
+                x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
     return x_adv
 
-# In[ ]:
-
-
-def train(epoch, method='fgsm'):
+def train(epoch):
     global total_epoch
     total_epoch += 1
     net.train()
@@ -155,13 +110,13 @@ def train(epoch, method='fgsm'):
         net.train()
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)
+        outputs = net(inputs)[0]
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        x_adv = FGSM(inputs, targets, eps=EPSILON)
-        adv_outputs = net(x_adv)
+        x_adv = FGSM(inputs, targets, eps=EPSILON, train=True)
+        adv_outputs = net(x_adv)[0]
 
         loss1 = criterion(outputs, targets)
         loss2 = criterion(adv_outputs, targets)
@@ -169,18 +124,21 @@ def train(epoch, method='fgsm'):
         loss.backward()
         optimizer.step()
         end = time.time()
-        if (batch_idx + 1) % 2000 == 0: #
-            del inputs, targets, outputs, predicted, x_adv, adv_outputs, loss1, loss2, loss
-            net.cpu()
-            gc.collect()
-            torch.cuda.empty_cache()
+        if (batch_idx + 1) % 100 == 0: #
             print('batch:%d, time:%d' % (batch_idx, end - start))
-            test(methods=method)
     acc = correct / total
     print('train acc: %.2f%%' % (100. * acc))
 
+    # print('update resnet ckpt!')
+    # state = {
+    #     'net': net.state_dict(),
+    #     'acc': 0,
+    #     'epoch': total_epoch,
+    # }
+    # if not os.path.isdir('checkpoint'):
+    #     os.mkdir('checkpoint')
+    # torch.save(state, ADV_MINI_IMAGENET_CKPT)
 
-# In[ ]:
 
 def test(methods='fgsm', update=False):
     global best_acc, total_epoch
@@ -197,7 +155,7 @@ def test(methods='fgsm', update=False):
     adv_fgsm_loss = None
     l2sum = 0
 
-    for batch_idx, (inputs, targets) in enumerate(dataset_loader):
+    for batch_idx, (inputs, targets) in enumerate(testloader):
         inputs, targets = inputs.to(device), targets.to(device)
         outputs = net(inputs)
         _, predicted = outputs.max(1)
@@ -292,14 +250,11 @@ def test(methods='fgsm', update=False):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, 'checkpoint/ImageNet.pth')
+        torch.save(state, ADV_MINI_IMAGENET_CKPT)
         best_acc = auc_score
-
-
-# In[ ]:
-
 
 for i in range(50):
     train(i)
+    # if i > 5:
     test('fgsm', update=True)
 # test('fgsm', update=False)

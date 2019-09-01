@@ -1,44 +1,21 @@
 # coding: utf-8
 
 # In[ ]:
-
-
 import os
-import gc
-import re
-import shutil
 import pynvml
-import torchvision
-
 pynvml.nvmlInit()
 from settings import *
-
-import time
 from torch.utils.data import DataLoader
-from torch.autograd import Variable
-import pandas as pd
 import torchvision
 import torch.optim as optim
 import torchvision.transforms as transforms
-import pretrainedmodels
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import pretrainedmodels.utils as utils
-import numpy as np
-from adversary.fgsm import Attack, where
-from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc
-import adversary.cw as cw
-from adversary.jsma import SaliencyMapMethod
-
-
 import torchvision.models as models
 
 rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
 
 resnet18 = models.resnet18(pretrained=True)
-# resnet18.classifier._modules['6'] = nn.Linear(4096, 20)
 fc_features = resnet18.fc.in_features
 resnet18.fc = nn.Linear(fc_features, 20)
 
@@ -129,5 +106,3 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     train(epoch)
     torch.cuda.empty_cache()
     test(epoch, update=True)
-
-# test(0)

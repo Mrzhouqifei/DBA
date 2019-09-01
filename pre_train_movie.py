@@ -1,14 +1,10 @@
-import re
 import os
-import unicodedata
-import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch import optim
-import torch.nn.functional as F
 import pickle
 from utils.wordProcess import *
-from models.moiveRnn import Model#, Embedding
+from models.moiveRnn import Model
 from settings import *
 
 vocabLimit = 50000

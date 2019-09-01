@@ -34,16 +34,18 @@ from adversary.jsma import SaliencyMapMethod
 
 import torchvision.models as models
 
-rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/miniImagenet-20/'
+rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
 
-inceptionv3 = models.inception_v3(pretrained=True)
-fc_features = inceptionv3.fc.in_features
-inceptionv3.fc = nn.Linear(fc_features, 20)
+resnet18 = models.resnet18(pretrained=True)
+# resnet18.classifier._modules['6'] = nn.Linear(4096, 20)
+fc_features = resnet18.fc.in_features
+resnet18.fc = nn.Linear(fc_features, 20)
 
-tf_img = utils.TransformImage(pretrainedmodels.__dict__['inceptionv3'](num_classes=1000, pretrained='imagenet'),
-                              scale=0.875, random_crop=False, random_hflip=False, random_vflip=False,
-                              preserve_aspect_ratio=True)
-net = inceptionv3
+tf_img = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+net = resnet18
 # state = {
 #     'net': net.state_dict(),
 #     'acc': 0,
@@ -51,24 +53,29 @@ net = inceptionv3
 # }
 # if not os.path.isdir('checkpoint'):
 #     os.mkdir('checkpoint')
-# torch.save(state, MINI_IMAGENET_CKPT)
+# torch.save(state, ADV_MINI_IMAGENET_CKPT)
+
 checkpoint = torch.load(ADV_MINI_IMAGENET_CKPT)
 net.load_state_dict(checkpoint['net'])
-best_acc = checkpoint['acc']
+best_acc = checkpoint['acc'] * 100
 total_epoch = checkpoint['epoch']
-print('best_acc: %.2f%%' % best_acc)
+print('best_auc: %.2f%%' % best_acc)
+if best_acc > 99:
+    best_acc = 0
+    print('set 0')
 net.to(device)
 print('load success')
 
 # train dataloader
 train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20//2, shuffle=True, num_workers=4)
+trainloader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
 
 # test dataloader
 dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
-testloader = DataLoader(dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20//4, shuffle=False, num_workers=4)
+testloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=4)
 
-EPSILON = 8 / 255 * (1 - -1 )
+EPSILON = 8 / 255
+EPSILON_TRAIN = 1 / 255
 l2dist = PairwiseDistance(2)
 criterion_none = nn.CrossEntropyLoss(reduction='none')
 criterion = nn.CrossEntropyLoss()
@@ -78,45 +85,57 @@ bim_attack = Attack(net, F.cross_entropy)
 cw_attack = cw.L2Adversary(targeted=False,
                            confidence=0.9,
                            search_steps=10,
-                           box=(-1, 1),
+                           box=(0, 1),
                            optimizer_lr=0.001)
+jsma_params = {'theta': 1, 'gamma': 0.1,
+               'clip_min': 0., 'clip_max': 1.,
+               'nb_classes': 20}
+jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
 def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False, train=False):
     x = Variable(x.to(device), requires_grad=False)
     y_true = Variable(y_true.to(device), requires_grad=False)
 
     if train:
-        x_adv = bim_attack.mini_imagenet__train_fgsm(x, y_true, False, eps, x_val_min=-1, x_val_max=1)
+        x_adv = bim_attack.mini_imagenet__train_fgsm(x, y_true, False, eps)
     else:
         if iteration == 1:
-            x_adv = bim_attack.fgsm(x, y_true, False, eps, x_val_min=-1, x_val_max=1)
+            x_adv = bim_attack.fgsm(x, y_true, False, eps)
         else:
             if bim_a:
-                x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
+                x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration)
             else:
-                x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration, x_val_min=-1, x_val_max=1)
+                x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration)
     return x_adv
+
+def converse(x, mean ,std):
+    x[:,0]=x[:,0]*std[0]+mean[0]
+    x[:,1]=x[:,1]*std[1]+mean[1]
+    x[:,2]=x[:,2].mul(std[2])+mean[2]
+    return x
 
 def train(epoch):
     global total_epoch
     total_epoch += 1
     net.train()
     print('-' * 30)
-    print('\nEpoch: %d' % epoch)
     correct = 0
+    adv_correct = 0
     total = 0
     start = time.time()
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         net.train()
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)[0]
+        outputs = net(inputs)
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
 
-        x_adv = FGSM(inputs, targets, eps=EPSILON, train=True)
-        adv_outputs = net(x_adv)[0]
+        x_adv = FGSM(inputs, targets, eps=EPSILON_TRAIN, train=False)
+        adv_outputs = net(x_adv)
+        _, adv_predicted = adv_outputs.max(1)
+        adv_correct += adv_predicted.eq(targets).sum().item()
 
         loss1 = criterion(outputs, targets)
         loss2 = criterion(adv_outputs, targets)
@@ -127,7 +146,9 @@ def train(epoch):
         if (batch_idx + 1) % 100 == 0: #
             print('batch:%d, time:%d' % (batch_idx, end - start))
     acc = correct / total
+    adv_acc = adv_correct / total
     print('train acc: %.2f%%' % (100. * acc))
+    print('adv acc: %.2f%%' % (100. * adv_acc))
 
     # print('update resnet ckpt!')
     # state = {
@@ -142,6 +163,7 @@ def train(epoch):
 
 def test(methods='fgsm', update=False):
     global best_acc, total_epoch
+    print('\nEpoch: %d' % total_epoch)
     net.cuda()
     net.eval()
     correct = 0
@@ -173,7 +195,7 @@ def test(methods='fgsm', update=False):
         total_right += inputs.size(0)
 
         # benign fgsm
-        benign_fgsm = FGSM(inputs, predicted, eps=EPSILON)
+        benign_fgsm = FGSM(inputs, predicted, eps=EPSILON_TRAIN)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
         # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
@@ -181,25 +203,27 @@ def test(methods='fgsm', update=False):
 
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPSILON*2, alpha=2 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPSILON*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=2 / 255, iteration=20, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=1 / 255, iteration=10, bim_a=True)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=2 / 255, iteration=20)
-        # elif methods == 'jsma':
-        #     x_adv = jsma_attack.generate(inputs, y=predicted)
+            x_adv = FGSM(inputs, predicted, eps=EPSILON/2, alpha=1 / 255, iteration=10)
+        elif methods == 'jsma':
+            x_adv = jsma_attack.generate(inputs, y=predicted)
         else:
             x_adv = cw_attack(net, inputs, predicted, to_numpy=False)
-
         l2sum += l2dist.forward(x_adv.reshape(temp_batch, -1),
                                 inputs.reshape(temp_batch, -1)).sum().detach().cpu().numpy()
+        # l2sum += l2dist.forward(converse(x_adv.clone(), tf_img.mean,tf_img.std).reshape(temp_batch, -1),
+        #                         converse(inputs.clone(), tf_img.mean,tf_img.std).reshape(temp_batch, -1)).sum().detach().cpu().numpy()
         adv_outputs = net(x_adv)
         _, adv_predicted = adv_outputs.max(1)
         attack_correct += adv_predicted.eq(predicted).sum().item()
         selected = (adv_predicted != targets).cpu().numpy().astype(bool)
+        # selected = np.ones_like(selected).astype(bool)
 
         # adv_fgsm
-        adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPSILON)  #
+        adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPSILON_TRAIN)  #
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
@@ -221,6 +245,7 @@ def test(methods='fgsm', update=False):
                                         (predicted.cpu().numpy()[selected])).sum()
         adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],
                                      (adv_predicted.cpu().numpy()[selected])).sum()
+        print(batch_idx)
 
     acc = correct/total
     attack_acc = attack_correct / total_right
@@ -253,8 +278,8 @@ def test(methods='fgsm', update=False):
         torch.save(state, ADV_MINI_IMAGENET_CKPT)
         best_acc = auc_score
 
-for i in range(50):
-    train(i)
-    # if i > 5:
-    test('fgsm', update=True)
-# test('fgsm', update=False)
+# for i in range(50):
+#     train(i)
+#     if (i+1) % 1 == 0:
+#         test('fgsm', update=True)
+test('cw', update=False)

@@ -31,21 +31,22 @@ from torch.nn.modules.distance import PairwiseDistance
 from utils.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
-from apex import amp
 
 
 import torchvision.models as models
 
-rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/miniImagenet-20/'
+rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
 
-inceptionv3 = models.inception_v3(pretrained=True)
-fc_features = inceptionv3.fc.in_features
-inceptionv3.fc = nn.Linear(fc_features, 20)
+resnet18 = models.resnet18(pretrained=True)
+# resnet18.classifier._modules['6'] = nn.Linear(4096, 20)
+fc_features = resnet18.fc.in_features
+resnet18.fc = nn.Linear(fc_features, 20)
 
-tf_img = utils.TransformImage(pretrainedmodels.__dict__['inceptionv3'](num_classes=1000, pretrained='imagenet'),
-                              scale=0.875, random_crop=False, random_hflip=False, random_vflip=False,
-                              preserve_aspect_ratio=True)
-net = inceptionv3
+tf_img = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+net = resnet18
 
 state = {
     'net': net.state_dict(),
@@ -66,16 +67,14 @@ print('load success')
 
 # train dataloader
 train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20, shuffle=True, num_workers=4)
+trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
 
 # test dataloader
 dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
-testloader = DataLoader(dataset, batch_size=BATCH_SIZE_MINI_IMAGENET20//2, shuffle=False, num_workers=4)
+testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=False, num_workers=4)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
-net, optimizer = amp.initialize(net, optimizer, opt_level="O1") # 这里是“欧一”，不是“零一”
-
 
 # Training
 def train(epoch):
@@ -87,10 +86,8 @@ def train(epoch):
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)[0]
+        outputs = net(inputs)
         loss = criterion(outputs, targets)
-        with amp.scale_loss(loss, optimizer) as scaled_loss:
-            scaled_loss.backward()
         loss.backward()
         optimizer.step()
 

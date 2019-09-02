@@ -54,7 +54,7 @@ print('load success')
 
 # train dataloader
 train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
+trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
 
 # test dataloader
 dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)

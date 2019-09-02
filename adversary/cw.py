@@ -2,7 +2,7 @@
 Carlini-Wagner attack (http://arxiv.org/abs/1608.04644).
 
 Referential implementation:
-
+- https://github.com/kkew3/pytorch-cw2
 - https://github.com/carlini/nn_robust_attacks.git (the original implementation)
 - https://github.com/rwightman/pytorch-nips2017-attack-example.git
 """

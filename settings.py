@@ -5,7 +5,7 @@ NUM_CLASSES = 10
 BATCH_SIZE = 256
 BATCH_SIZE_MNIST = 256
 BATCH_SIZE_MNIST_TEST = 1024 #1024
-BATCH_SIZE_CIFAR10 = 128 # jsma 32 +cw 64
+BATCH_SIZE_CIFAR10 = 24 # 128 jsma 32 +cw 64
 BATCH_SIZE_IMAGENET20 = 128
 
 LOAD_CKPT = True # pre_train
@@ -19,7 +19,7 @@ EPS_CIFAR10 = 8/255
 NUM_WORKERS = 8
 
 CLASSIFY_CKPT = './checkpoint/resnet_adv.pth'
-MNIST_CKPT = './checkpoint/conv_adv.pth'
+MNIST_CKPT = './checkpoint/conv.pth'
 MOIVE_CKPT = 'checkpoint/model-Copy1.pth'
 MOIVE_CKPT_ADV_TRAINING = 'checkpoint/model_adv.pth'
 IMAGENET_CKPT = 'checkpoint/imageNet.pth'

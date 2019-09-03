@@ -58,7 +58,7 @@ trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffl
 
 # test dataloader
 dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
-testloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=4)
+testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20//2, shuffle=False, num_workers=4)
 
 EPSILON = 8 / 255
 EPSILON_TRAIN = 1 / 255
@@ -177,15 +177,16 @@ def test(methods='fgsm', update=False):
         inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
         targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
         predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
         total_right += inputs.size(0)
 
         # benign fgsm
         benign_fgsm = FGSM(inputs, predicted, eps=EPSILON_TRAIN)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
-        # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
         temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
+        # temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy() - \
+        #         criterion_none(outputs, predicted).detach().cpu().numpy()
 
         # attack begin
         if methods == 'fgsm':
@@ -193,7 +194,7 @@ def test(methods='fgsm', update=False):
         elif methods == 'bim_a':
             x_adv = FGSM(inputs, predicted, eps=EPSILON, alpha=1 / 255, iteration=10, bim_a=True)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPSILON/2, alpha=1 / 255, iteration=10)
+            x_adv = FGSM(inputs, predicted, eps=EPSILON/2, alpha=1 / 255, iteration=5)
         elif methods == 'jsma':
             x_adv = jsma_attack.generate(inputs, y=predicted)
         else:
@@ -212,8 +213,9 @@ def test(methods='fgsm', update=False):
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPSILON_TRAIN)  #
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
-        # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
         temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
+        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() - \
+        #         criterion_none(adv_outputs, adv_predicted).detach().cpu().numpy()
 
         # select the examples which is attacked successfully
         temp1 = temp1[selected].reshape(1, -1)
@@ -231,7 +233,7 @@ def test(methods='fgsm', update=False):
                                         (predicted.cpu().numpy()[selected])).sum()
         adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],
                                      (adv_predicted.cpu().numpy()[selected])).sum()
-        print(batch_idx)
+        # print(batch_idx)
 
     acc = correct/total
     attack_acc = attack_correct / total_right

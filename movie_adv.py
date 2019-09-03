@@ -45,8 +45,13 @@ def train():
     for epoch in range(NUM_EPOCHS):
         right = 0
         total = 0
+        total_changed = 0
+        benign_right = 0
+        adv_right = 0
         benignloss_list = []
         advloss_list = []
+        flag = (epoch % 4 == 3)
+        print('-'*20, epoch, flag)
         for idx, lines in enumerate(f):
             if idx > 0:
                 data = lines.split('\t')[2]
@@ -72,7 +77,7 @@ def train():
 
                     loss.backward()
                     optimizer.step()
-                elif idx > 20000:
+                elif (idx > 20000) and flag:
                     y_pred, embeddings = model(input_data)
                     _, predicted = y_pred.max(1)
 
@@ -81,6 +86,7 @@ def train():
                         changed, benign_adv, change_words, loss_benign = jsma(input_data.clone(), target, model,
                                                                               nb_classes=2, max_iter=20)
                         if changed:
+                            total_changed += 1
                             _, input_data_embedding = model(input_data)
                             _, benign_adv_embedding = model(benign_adv)
                             benign_undercover = FGSM(input_data_embedding, target_data)
@@ -91,36 +97,44 @@ def train():
                             adv_outputs, _ = model(adv_undercover, after_embedding=True)
                             temp2 = criterion_none(adv_outputs, 1 - target_data).detach().cpu().numpy()[0]
 
+                            _, undercover_benign_predicted = benign_outputs.max(1)
+                            _, undercover_adv_predicted = adv_outputs.max(1)
+                            benign_right += (undercover_benign_predicted == target_data).cpu().numpy()[0]
+                            adv_right += (undercover_adv_predicted == (1 - target_data)).cpu().numpy()[0]
+
                             benignloss_list.append(temp1)
                             advloss_list.append(temp2)
                     total += 1
                 if (idx+1) % 2000 == 0:
                     print('epoch: %d, idx: %d' % (epoch, idx))
 
-        print('-'*30)
-        print('eopch: ', epoch)
-        print('acc: ', right / total)
-        print('benignloss_mean: ', np.mean(benignloss_list))
-        print('advloss_mean: ',np.mean(advloss_list))
+        if flag:
+            print('-'*30)
+            print('eopch: ', epoch)
+            print('acc: ', right / total)
+            print('benignloss_mean: ', np.mean(benignloss_list))
+            print('advloss_mean: ',np.mean(advloss_list))
+            print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_right / total_changed,
+                                                                    100. * adv_right / total_changed))
 
-        benignloss_list = np.array(benignloss_list)
-        advloss_list = np.array(advloss_list)
-        losses = np.concatenate((benignloss_list, advloss_list), axis=0)
-        labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
-        auc_score = roc_auc(labels, losses)
-        print('split criterion', np.median(losses))
-        print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
+            benignloss_list = np.array(benignloss_list)
+            advloss_list = np.array(advloss_list)
+            losses = np.concatenate((benignloss_list, advloss_list), axis=0)
+            labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
+            auc_score = roc_auc(labels, losses)
+            print('split criterion', np.median(losses))
+            print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
-        if auc_score > best_acc:
-            best_acc = auc_score
-            print('save checkpoint!')
-            state = {
-                'net': model.state_dict(),
-                'acc': auc_score,
-            }
-            if not os.path.isdir('checkpoint'):
-                os.mkdir('checkpoint')
-            torch.save(state, MOIVE_CKPT_ADV_TRAINING)
+            if auc_score > best_acc:
+                best_acc = auc_score
+                print('save checkpoint!')
+                state = {
+                    'net': model.state_dict(),
+                    'acc': auc_score,
+                }
+                if not os.path.isdir('checkpoint'):
+                    os.mkdir('checkpoint')
+                torch.save(state, MOIVE_CKPT_ADV_TRAINING)
 
 def test():
     right = 0
@@ -162,18 +176,16 @@ def test():
 
                     _, undercover_benign_predicted = benign_outputs.max(1)
                     _, undercover_adv_predicted = adv_outputs.max(1)
-                    benign_right += undercover_benign_predicted == target_data
-                    adv_right += undercover_adv_predicted == (1-target_data)
-                    print(undercover_benign_predicted, target_data)
-                    print(undercover_benign_predicted == target_data)
+                    benign_right += (undercover_benign_predicted == target_data).cpu().numpy()[0]
+                    adv_right += (undercover_adv_predicted == (1-target_data)).cpu().numpy()[0]
 
                     benignloss_list.append(temp1)
                     advloss_list.append(temp2)
             total += 1
             if (idx+1) % 2000 == 0:
                 print('idx: %d' % (idx))
-            if idx == 20100:
-                break
+            # if idx == 20100:
+            #     break
 
     print('-' * 30)
     print('acc: ', right / total)
@@ -190,5 +202,5 @@ def test():
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
-test()
-# train()
+# test()
+train()

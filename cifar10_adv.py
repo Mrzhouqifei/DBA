@@ -138,7 +138,6 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         benign_fgsm = FGSM(inputs, predicted, eps=EPS_CIFAR10)
         benign_fgsm__outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
-        # temp1 = l2dist.forward(F.softmax(benign_fgsm__outputs, dim=1), F.softmax(outputs, dim=1)).detach().cpu().numpy()
         temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
 
         if random_method:
@@ -176,7 +175,6 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_CIFAR10)#
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
-        # temp2 = l2dist.forward(F.softmax(adv_fgsm_outputs, dim=1), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
         temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
 
         # select the examples which is attacked successfully
@@ -192,6 +190,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         total_attack_sucess += len(temp1[0])
         benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
         adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
+        print(batch_idx)
 
     acc = correct / total
     attack_acc = attack_correct / total_right
@@ -245,7 +244,7 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    methods = 'fgsm'
+    methods = 'jsma'
     print('CIFAR10 ',methods)
-    test(epoch, methods=methods, update=False, random_method=True)
+    test(epoch, methods=methods, update=False, random_method=False)
     break

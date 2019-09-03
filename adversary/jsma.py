@@ -2,6 +2,7 @@
 Referential implementation: cleverhans tensorflow
 """
 import torch
+import torch.nn as nn
 import numpy as np
 from settings import *
 from torch.autograd import Variable
@@ -197,3 +198,58 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
         conditions = condition(x_adv, y_in, domain_out, i_out, cond_out)
 
     return x_adv
+
+def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
+    """
+    jacobian-based attack on RNNs
+    :param x_in:
+    :param y_in:
+    :param model:
+    :param nb_classes:
+    :param max_iter:
+    :param fix_iter:
+    :return:
+    """
+    criterion_none = nn.CrossEntropyLoss(reduction='none')
+    logits, embeddings = model(x_in)
+    change_words = 0
+    change_list = []
+    changed = False
+    while not changed and change_words < max_iter:
+        change_words += 1
+        # create the Jacobian
+        grads = None
+        for class_ind in range(nb_classes):
+            model.zero_grad()
+            logits[:, class_ind].sum().backward(retain_graph=True)
+            derivatives = embeddings.grad.reshape(len(x_in), -1)
+            derivatives = derivatives.sum(dim=1)
+            if class_ind == 0:
+                grads = derivatives
+            else:
+                grads = torch.cat((grads, derivatives))
+        grads = grads.reshape(nb_classes, -1).cpu().numpy()
+        gradsum = np.abs(grads[1-y_in,:]) * (-grads[y_in,:])
+        max_index = np.argmax(gradsum)
+        while max_index in change_list:
+            gradsum[max_index] = -1
+            max_index = np.argmax(gradsum)
+        change_list.append(max_index)
+        min_confidence = torch.nn.functional.softmax(logits, dim=1)[0, y_in]
+        best_word = x_in[max_index]
+        for i in range(50):
+            x_in[max_index] = i
+            logits, _ = model(x_in)
+            confidence = torch.nn.functional.softmax(logits, dim=1)[0,y_in]
+            if confidence < min_confidence:
+                min_confidence = confidence
+                best_word = i
+            if confidence < 0.5:  # for speed up, u can delete it
+                break
+        x_in[max_index] = best_word
+        logits, _ = model(x_in)
+        _, predicted = logits.max(1)
+        changed = bool(predicted != y_in)
+        if fix_iter:
+            changed = False
+    return changed, x_in, change_words, criterion_none(logits, torch.LongTensor([y_in]).to(device)).detach().cpu().numpy()[0]

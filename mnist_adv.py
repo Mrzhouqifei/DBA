@@ -253,10 +253,10 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 
 for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # fgsm, bim_a, bim_b, jsma, cw
-    train(epoch)
-    test(epoch, methods='fgsm', update=True)
+    # train(epoch)
+    # test(epoch, methods='fgsm', update=True)
 
-    # methods = 'fgsm'
-    # print('MNIST ',methods)
-    # test(epoch, methods=methods, update=False, random_method=True)
-    # break
+    methods = 'bim_a'
+    print('MNIST ',methods)
+    test(epoch, methods=methods, update=False, random_method=True)
+    break

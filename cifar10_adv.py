@@ -12,7 +12,7 @@ import numpy as np
 from adversary.fgsm import Attack
 from torch.autograd import Variable
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc
+from utils.roc_plot import roc_auc, creterion_func
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import random
@@ -190,7 +190,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         total_attack_sucess += len(temp1[0])
         benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
         adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
-        print(batch_idx)
+        # print(batch_idx)
 
     acc = correct / total
     attack_acc = attack_correct / total_right
@@ -209,6 +209,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
     print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
+    creterion_func(benign_fgsm_loss, adv_fgsm_loss)
 
     # Save checkpoint.
     if auc_score >= best_acc and update:
@@ -244,7 +245,7 @@ for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
     # train(epoch)
     # test(epoch, methods='fgsm', update=True)
 
-    methods = 'jsma'
+    methods = 'fgsm'
     print('CIFAR10 ',methods)
     test(epoch, methods=methods, update=False, random_method=False)
     break

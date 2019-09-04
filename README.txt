@@ -1,4 +1,4 @@
---> examples.ipynb: a quick glance of the use case of undercover attack
+--> example_xx.ipynb: a quick glance of the use case of undercover attack on images and texts
 
 --> xxx_pre_train: train models on normal examples
 

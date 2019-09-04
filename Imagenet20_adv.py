@@ -270,4 +270,4 @@ def test(methods='fgsm', update=False):
 #     train(i)
 #     if (i+1) % 1 == 0:
 #         test('fgsm', update=True)
-test('cw', update=False)
+test('fgsm', update=False)

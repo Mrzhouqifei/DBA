@@ -6,7 +6,7 @@
 
 --> adversary: five attack methods are implemented in this package
     fgsm: FGSM, BIM_A, BIM_B
-    jsma: JSMA, (Jacobian-based attack on Rnns is implemented in movie_adv.py)
+    jsma: JSMA, JSMA*(texts)
     cw: CW
 
 --> data: 20 ImageNet classes are exhibited in imagenet_classes.txt

@@ -26,7 +26,7 @@ criterion_none = nn.CrossEntropyLoss(reduction='none')
 loss_function = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-checkpoint = torch.load(MOIVE_CKPT)
+checkpoint = torch.load(MOIVE_CKPT) #MOIVE_CKPT_ADV_TRAINING
 model.load_state_dict(checkpoint['net'])
 best_acc = 0
 
@@ -140,6 +140,7 @@ def test():
     right = 0
     total = 0
     total_changed = 0
+    total_changed_num = 0
     benign_right = 0
     adv_right = 0
     benignloss_list = []
@@ -164,6 +165,7 @@ def test():
                                                                       nb_classes=2, max_iter=20)
                 if changed:
                     total_changed += 1
+                    total_changed_num += change_words
                     _, input_data_embedding = model(input_data)
                     _, benign_adv_embedding = model(benign_adv)
                     benign_undercover = FGSM(input_data_embedding, target_data)
@@ -189,6 +191,7 @@ def test():
 
     print('-' * 30)
     print('acc: ', right / total)
+    print('mean changed words', total_changed_num / total_changed)
     print('benignloss_mean: ', np.mean(benignloss_list))
     print('advloss_mean: ', np.mean(advloss_list))
     print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_right/total_changed,
@@ -202,5 +205,5 @@ def test():
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
-# test()
-train()
+test()
+# train()

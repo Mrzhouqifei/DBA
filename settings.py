@@ -19,7 +19,7 @@ EPS_CIFAR10 = 8/255
 NUM_WORKERS = 8
 
 CLASSIFY_CKPT = './checkpoint/resnet_adv.pth'
-MNIST_CKPT = './checkpoint/conv.pth'
+MNIST_CKPT = './checkpoint/conv_adv.pth'
 MOIVE_CKPT = 'checkpoint/model-Copy1.pth'
 MOIVE_CKPT_ADV_TRAINING = 'checkpoint/model_adv.pth'
 IMAGENET_CKPT = 'checkpoint/imageNet.pth'

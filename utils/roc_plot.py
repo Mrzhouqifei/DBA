@@ -23,14 +23,13 @@ def roc_auc(labels, losses):
     return roc_auc
 
 def creterion_func(benign_losses, adv_losses):
-    benign_losses = benign_losses[:300]
-    adv_losses = adv_losses[:300]
+    benign_losses = benign_losses[:]
+    adv_losses = adv_losses[:]
     creterion = pd.DataFrame([benign_losses, adv_losses])
     creterion.to_csv('./output/creterion.csv', index=False)
     fig = plt.figure()
     plt.scatter(np.arange(len(benign_losses)), benign_losses, color='cornflowerblue', s=3, marker='o')
     plt.scatter(np.arange(len(adv_losses)), adv_losses, color='crimson', s=3, marker='*')
     plt.xticks([])
-    # plt.yticks([])
-    fig.savefig('creterion.png', dpi=400)
+    fig.savefig('./output/creterion.png', dpi=400)
     plt.show()

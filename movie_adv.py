@@ -12,27 +12,6 @@ from adversary.fgsm import Attack_MOVIE
 from utils.roc_plot import roc_auc
 from adversary.jsma import jsma
 
-with open('output/dict.pkl','rb') as f :
-    word_dict = pickle.load(f)
-word_length = len(word_dict)
-# print(word_length)
-vocabLimit = 50000
-max_sequence_len = 500
-embedding_dim = 50
-hidden_dim = 100
-
-model = Model(embedding_dim, hidden_dim,vocabLimit).to(device)
-criterion_none = nn.CrossEntropyLoss(reduction='none')
-loss_function = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-checkpoint = torch.load(MOIVE_CKPT) #MOIVE_CKPT_ADV_TRAINING
-model.load_state_dict(checkpoint['net'])
-best_acc = 0
-
-f = open('data/labeledTrainData.tsv').readlines()
-
-bim_attack = Attack_MOVIE(model, F.cross_entropy)
 def FGSM(x, y_true, eps=0.001):
     x = Variable(x.to(device), requires_grad=True)
     y_true = Variable(y_true.to(device), requires_grad=False)
@@ -205,5 +184,29 @@ def test():
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
 
-test()
-# train()
+
+if __name__ == '__main__':
+    with open('output/dict.pkl', 'rb') as f:
+        word_dict = pickle.load(f)
+    word_length = len(word_dict)
+    # print(word_length)
+    vocabLimit = 50000
+    max_sequence_len = 500
+    embedding_dim = 50
+    hidden_dim = 100
+
+    model = Model(embedding_dim, hidden_dim, vocabLimit).to(device)
+    criterion_none = nn.CrossEntropyLoss(reduction='none')
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+    checkpoint = torch.load(MOIVE_CKPT)  # MOIVE_CKPT_ADV_TRAINING
+    model.load_state_dict(checkpoint['net'])
+    best_acc = 0
+
+    f = open('data/labeledTrainData.tsv').readlines()
+    bim_attack = Attack_MOVIE(model, F.cross_entropy)
+
+
+    test()
+    # train()

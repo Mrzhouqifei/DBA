@@ -13,45 +13,6 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
-
-resnet18 = models.resnet18(pretrained=True)
-fc_features = resnet18.fc.in_features
-resnet18.fc = nn.Linear(fc_features, 20)
-
-tf_img = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-])
-net = resnet18
-
-state = {
-    'net': net.state_dict(),
-    'acc': 0,
-    'epoch': 0,
-}
-if not os.path.isdir('checkpoint'):
-    os.mkdir('checkpoint')
-torch.save(state, MINI_IMAGENET_CKPT)
-
-checkpoint = torch.load(MINI_IMAGENET_CKPT)
-net.load_state_dict(checkpoint['net'])
-best_acc = checkpoint['acc']
-start_epoch = checkpoint['epoch']
-print('best_acc: %.2f%%' %  best_acc)
-net.to(device)
-print('load success')
-
-# train dataloader
-train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
-
-# test dataloader
-dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
-testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=False, num_workers=4)
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
 
 # Training
 def train(epoch):
@@ -102,7 +63,50 @@ def test(epoch, update=False):
         torch.save(state, MINI_IMAGENET_CKPT)
         best_acc = acc
 
-for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    train(epoch)
-    torch.cuda.empty_cache()
-    test(epoch, update=True)
+
+if __name__ == '__main__':
+    rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
+
+    resnet18 = models.resnet18(pretrained=True)
+    fc_features = resnet18.fc.in_features
+    resnet18.fc = nn.Linear(fc_features, 20)
+
+    tf_img = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+    ])
+    net = resnet18
+
+    state = {
+        'net': net.state_dict(),
+        'acc': 0,
+        'epoch': 0,
+    }
+    if not os.path.isdir('checkpoint'):
+        os.mkdir('checkpoint')
+    torch.save(state, MINI_IMAGENET_CKPT)
+
+    checkpoint = torch.load(MINI_IMAGENET_CKPT)
+    net.load_state_dict(checkpoint['net'])
+    best_acc = checkpoint['acc']
+    start_epoch = checkpoint['epoch']
+    print('best_acc: %.2f%%' % best_acc)
+    net.to(device)
+    print('load success')
+
+    # train dataloader
+    train_dataset = torchvision.datasets.ImageFolder(root=rootpath + 'train', transform=tf_img)
+    trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
+
+    # test dataloader
+    dataset = torchvision.datasets.ImageFolder(root=rootpath + 'test', transform=tf_img)
+    testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=False, num_workers=4)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
+
+
+    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+        train(epoch)
+        torch.cuda.empty_cache()
+        test(epoch, update=True)

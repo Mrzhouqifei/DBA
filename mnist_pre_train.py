@@ -8,49 +8,6 @@ import os
 from models.conv import MnistModel
 from settings import *
 
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-
-# Data
-print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-])
-
-trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True, num_workers=NUM_WORKERS)
-
-testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST, shuffle=False, num_workers=NUM_WORKERS)
-
-
-# Model
-print('==> Building model..')
-net = MnistModel()
-net = net.to(device)
-
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-if LOAD_CKPT:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load(MNIST_CKPT)
-    net.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
-
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
-
 # Training
 def train(epoch):
     print('\nEpoch: %d' % epoch)
@@ -107,7 +64,58 @@ def test(epoch):
         best_acc = acc
 
 
-for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    train(epoch)
-    test(epoch)
+if __name__ == '__main__':
+    best_acc = 0  # best test accuracy
+    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+
+    # Data
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True,
+                                              num_workers=NUM_WORKERS)
+
+    testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST, shuffle=False,
+                                             num_workers=NUM_WORKERS)
+
+    # Model
+    print('==> Building model..')
+    net = MnistModel()
+    net = net.to(device)
+
+    if device == 'cuda':
+        net = torch.nn.DataParallel(net)
+        cudnn.benchmark = True
+
+    if False:
+        # Load checkpoint.
+        print('==> Resuming from checkpoint..')
+        assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+        checkpoint = torch.load(MNIST_CKPT)
+        net.load_state_dict(checkpoint['net'])
+        try:
+            best_acc = checkpoint['acc']
+        except:
+            best_acc = checkpoint['auc_score']
+            if best_acc > 90:
+                best_acc = best_acc / 100
+            print('best_acc: %.2f%%' % (100. * best_acc))
+        start_epoch = checkpoint['epoch']
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
+
+    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+        train(epoch)
+        test(epoch)
 

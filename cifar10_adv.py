@@ -17,67 +17,6 @@ import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import random
 
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-
-# Data
-print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-])
-
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_CIFAR10, shuffle=True, num_workers=NUM_WORKERS)
-
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_CIFAR10, shuffle=False, num_workers=NUM_WORKERS)
-
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-# Model
-print('==> Building model..')
-net = PreActResNet18()
-net = net.to(device)
-
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-# Load checkpoint.
-print('==> Resuming from checkpoint..')
-assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-checkpoint = torch.load(CLASSIFY_CKPT)
-net.load_state_dict(checkpoint['net'])
-start_epoch = checkpoint['epoch']
-best_acc = checkpoint['acc']
-if best_acc > 90:
-    best_acc = best_acc / 100
-print(start_epoch)
-print('best_acc: %.2f%%' % (100.*best_acc))
-
-l2dist = PairwiseDistance(2)
-criterion_none = nn.CrossEntropyLoss(reduction='none')
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
-# attacks
-bim_attack = Attack(net, F.cross_entropy)
-cw_attack = cw.L2Adversary(targeted=False,
-                           confidence=0.9,
-                           search_steps=10,
-                           box=(0, 1),
-                           optimizer_lr=0.001)
-jsma_params = {'theta': 1, 'gamma': 0.1,
-               'clip_min': 0., 'clip_max': 1.,
-               'nb_classes': len(classes)}
-jsma_attack = SaliencyMapMethod(net, **jsma_params)
-
 # Training
 def train(epoch):
     print('\nEpoch: %d' % epoch)
@@ -239,13 +178,79 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 
     return x_adv
 
-for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
 
-    # train(epoch)
-    # test(epoch, methods='fgsm', update=True)
+if __name__ == '__main__':
+    best_acc = 0  # best test accuracy
+    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
-    methods = 'fgsm'
-    print('CIFAR10 ',methods)
-    test(epoch, methods=methods, update=False, random_method=False)
-    break
+    # Data
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_CIFAR10, shuffle=True,
+                                              num_workers=NUM_WORKERS)
+
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_CIFAR10, shuffle=False,
+                                             num_workers=NUM_WORKERS)
+
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+    # Model
+    print('==> Building model..')
+    net = PreActResNet18()
+    net = net.to(device)
+
+    if device == 'cuda':
+        net = torch.nn.DataParallel(net)
+        cudnn.benchmark = True
+
+    # Load checkpoint.
+    print('==> Resuming from checkpoint..')
+    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load(CLASSIFY_CKPT)
+    net.load_state_dict(checkpoint['net'])
+    start_epoch = checkpoint['epoch']
+    best_acc = checkpoint['acc']
+    if best_acc > 90:
+        best_acc = best_acc / 100
+    print(start_epoch)
+    print('best_acc: %.2f%%' % (100. * best_acc))
+
+    l2dist = PairwiseDistance(2)
+    criterion_none = nn.CrossEntropyLoss(reduction='none')
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
+    # attacks
+    bim_attack = Attack(net, F.cross_entropy)
+    cw_attack = cw.L2Adversary(targeted=False,
+                               confidence=0.9,
+                               search_steps=10,
+                               box=(0, 1),
+                               optimizer_lr=0.001)
+    jsma_params = {'theta': 1, 'gamma': 0.1,
+                   'clip_min': 0., 'clip_max': 1.,
+                   'nb_classes': len(classes)}
+    jsma_attack = SaliencyMapMethod(net, **jsma_params)
+
+
+    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+        # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
+
+        # train(epoch)
+        # test(epoch, methods='fgsm', update=True)
+
+        methods = 'fgsm'
+        print('CIFAR10 ',methods)
+        test(epoch, methods=methods, update=False, random_method=False)
+        break

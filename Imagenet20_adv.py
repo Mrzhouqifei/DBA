@@ -21,62 +21,6 @@ import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import torchvision.models as models
 
-rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
-
-resnet18 = models.resnet18(pretrained=True)
-fc_features = resnet18.fc.in_features
-resnet18.fc = nn.Linear(fc_features, 20)
-
-tf_img = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-])
-net = resnet18
-# state = {
-#     'net': net.state_dict(),
-#     'acc': 0,
-#     'epoch': 0,
-# }
-# if not os.path.isdir('checkpoint'):
-#     os.mkdir('checkpoint')
-# torch.save(state, ADV_MINI_IMAGENET_CKPT)
-
-checkpoint = torch.load(ADV_MINI_IMAGENET_CKPT)
-net.load_state_dict(checkpoint['net'])
-best_acc = checkpoint['acc'] * 100
-total_epoch = checkpoint['epoch']
-print('best_auc: %.2f%%' % best_acc)
-if best_acc > 99:
-    best_acc = 0
-    print('set 0')
-net.to(device)
-print('load success')
-
-# train dataloader
-train_dataset = torchvision.datasets.ImageFolder(root=rootpath+'train', transform=tf_img)
-trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
-
-# test dataloader
-dataset = torchvision.datasets.ImageFolder(root=rootpath+'test', transform=tf_img)
-testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20//2, shuffle=False, num_workers=4)
-
-EPSILON = 8 / 255
-EPSILON_TRAIN = 1 / 255
-l2dist = PairwiseDistance(2)
-criterion_none = nn.CrossEntropyLoss(reduction='none')
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
-# attacks
-bim_attack = Attack(net, F.cross_entropy)
-cw_attack = cw.L2Adversary(targeted=False,
-                           confidence=0.9,
-                           search_steps=10,
-                           box=(0, 1),
-                           optimizer_lr=0.001)
-jsma_params = {'theta': 1, 'gamma': 0.1,
-               'clip_min': 0., 'clip_max': 1.,
-               'nb_classes': 20}
-jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
 def FGSM(x, y_true, eps=8 / 255, alpha=1 / 255, iteration=10, bim_a=False, train=False):
     x = Variable(x.to(device), requires_grad=False)
@@ -266,8 +210,68 @@ def test(methods='fgsm', update=False):
         torch.save(state, ADV_MINI_IMAGENET_CKPT)
         best_acc = auc_score
 
-# for i in range(50):
-#     train(i)
-#     if (i+1) % 1 == 0:
-#         test('fgsm', update=True)
-test('fgsm', update=False)
+
+if __name__ == '__main__':
+    rootpath = '/home/qifeiz/ImageNetData/mini-imagenet/Imagenet-20/'
+
+    resnet18 = models.resnet18(pretrained=True)
+    fc_features = resnet18.fc.in_features
+    resnet18.fc = nn.Linear(fc_features, 20)
+
+    tf_img = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+    ])
+    net = resnet18
+    # state = {
+    #     'net': net.state_dict(),
+    #     'acc': 0,
+    #     'epoch': 0,
+    # }
+    # if not os.path.isdir('checkpoint'):
+    #     os.mkdir('checkpoint')
+    # torch.save(state, ADV_MINI_IMAGENET_CKPT)
+
+    checkpoint = torch.load(ADV_MINI_IMAGENET_CKPT)
+    net.load_state_dict(checkpoint['net'])
+    best_acc = checkpoint['acc'] * 100
+    total_epoch = checkpoint['epoch']
+    print('best_auc: %.2f%%' % best_acc)
+    if best_acc > 99:
+        best_acc = 0
+        print('set 0')
+    net.to(device)
+    print('load success')
+
+    # train dataloader
+    train_dataset = torchvision.datasets.ImageFolder(root=rootpath + 'train', transform=tf_img)
+    trainloader = DataLoader(train_dataset, batch_size=BATCH_SIZE_IMAGENET20, shuffle=True, num_workers=4)
+
+    # test dataloader
+    dataset = torchvision.datasets.ImageFolder(root=rootpath + 'test', transform=tf_img)
+    testloader = DataLoader(dataset, batch_size=BATCH_SIZE_IMAGENET20 // 2, shuffle=False, num_workers=4)
+
+    EPSILON = 8 / 255
+    EPSILON_TRAIN = 1 / 255
+    l2dist = PairwiseDistance(2)
+    criterion_none = nn.CrossEntropyLoss(reduction='none')
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
+    # attacks
+    bim_attack = Attack(net, F.cross_entropy)
+    cw_attack = cw.L2Adversary(targeted=False,
+                               confidence=0.9,
+                               search_steps=10,
+                               box=(0, 1),
+                               optimizer_lr=0.001)
+    jsma_params = {'theta': 1, 'gamma': 0.1,
+                   'clip_min': 0., 'clip_max': 1.,
+                   'nb_classes': 20}
+    jsma_attack = SaliencyMapMethod(net, **jsma_params)
+
+
+    # for i in range(50):
+    #     train(i)
+    #     if (i+1) % 1 == 0:
+    #         test('fgsm', update=True)
+    test('fgsm', update=False)

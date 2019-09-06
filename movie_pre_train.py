@@ -7,36 +7,7 @@ from utils.wordProcess import *
 from models.moiveRnn import Model
 from settings import *
 
-vocabLimit = 50000
-max_sequence_len = 500
-obj1 = wordIndex()
-embedding_dim = 50
-hidden_dim = 100
-#labeledTrainData   movieTrain
-f = open('data/labeledTrainData.tsv').readlines()
-print('reading the lines')
-for idx, lines in enumerate(f):
-    if not idx == 0:
-        data = lines.split('\t')[2]
-        data = normalizeString(data).strip()
-        obj1.add_text(data)
-print('read all the lines')
 
-limitDict(vocabLimit, obj1)
-
-model = Model(embedding_dim, hidden_dim, vocabLimit).to(device)
-best_acc = 0
-
-if False: #LOAD_CKPT
-    checkpoint = torch.load(MOIVE_CKPT)
-    model.load_state_dict(checkpoint['net'])
-    best_acc = checkpoint['acc']
-    print('best_acc: %.2f' % best_acc)
-
-loss_function = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-print('starting training')
 """"
 1~20000 train
 20001~25000 test
@@ -112,5 +83,38 @@ def test():
     print('test acc:', acc)
     print('-' * 30)
 
-# test()
-train()
+
+if __name__ == '__main__':
+    vocabLimit = 50000
+    max_sequence_len = 500
+    obj1 = wordIndex()
+    embedding_dim = 50
+    hidden_dim = 100
+    # labeledTrainData   movieTrain
+    f = open('data/labeledTrainData.tsv').readlines()
+    print('reading the lines')
+    for idx, lines in enumerate(f):
+        if not idx == 0:
+            data = lines.split('\t')[2]
+            data = normalizeString(data).strip()
+            obj1.add_text(data)
+    print('read all the lines')
+
+    limitDict(vocabLimit, obj1)
+
+    model = Model(embedding_dim, hidden_dim, vocabLimit).to(device)
+    best_acc = 0
+
+    if False:  # LOAD_CKPT
+        checkpoint = torch.load(MOIVE_CKPT)
+        model.load_state_dict(checkpoint['net'])
+        best_acc = checkpoint['acc']
+        print('best_acc: %.2f' % best_acc)
+
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+    print('starting training')
+
+    # test()
+    train()

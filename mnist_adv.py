@@ -18,68 +18,6 @@ from adversary.jsma import SaliencyMapMethod
 import torch
 import random
 
-best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-
-# Data
-print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-])
-
-trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True, num_workers=NUM_WORKERS)
-
-testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST_TEST, shuffle=False, num_workers=NUM_WORKERS)
-
-
-# Model
-print('==> Building model..')
-net = MnistModel()
-net = net.to(device)
-
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-# Load checkpoint.
-print('==> Resuming from checkpoint..')
-assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-checkpoint = torch.load(MNIST_CKPT)
-net.load_state_dict(checkpoint['net'])
-start_epoch = checkpoint['epoch']
-print(start_epoch)
-try:
-    best_acc = checkpoint['auc_score']
-    if best_acc > 90:
-        best_acc = best_acc / 100
-    print('best_auc: %.2f%%' % (100.*best_acc))
-except:
-    pass
-
-l2dist = PairwiseDistance(2)
-criterion_none = nn.CrossEntropyLoss(reduction='none')
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
-# attacks
-bim_attack = Attack(net, F.cross_entropy)
-cw_attack = cw.L2Adversary(targeted=False,
-                           confidence=0.9,
-                           search_steps=10,
-                           box=(0, 1),
-                           optimizer_lr=0.001)
-jsma_params = {'theta': 1, 'gamma': 0.1,
-               'clip_min': 0., 'clip_max': 1.,
-               'nb_classes': 10}
-jsma_attack = SaliencyMapMethod(net, **jsma_params)
-
 # Training
 def train(epoch):
     print('\nEpoch: %d' % epoch)
@@ -251,12 +189,78 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 
     return x_adv
 
-for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    # fgsm, bim_a, bim_b, jsma, cw
-    # train(epoch)
-    # test(epoch, methods='fgsm', update=True)
 
-    methods = 'bim_a'
-    print('MNIST ',methods)
-    test(epoch, methods=methods, update=False, random_method=False)
-    break
+if __name__ == '__main__':
+    best_acc = 0  # best test accuracy
+    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+
+    # Data
+    print('==> Preparing data..')
+    transform_train = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE_MNIST, shuffle=True,
+                                              num_workers=NUM_WORKERS)
+
+    testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE_MNIST_TEST, shuffle=False,
+                                             num_workers=NUM_WORKERS)
+
+    # Model
+    print('==> Building model..')
+    net = MnistModel()
+    net = net.to(device)
+
+    if device == 'cuda':
+        net = torch.nn.DataParallel(net)
+        cudnn.benchmark = True
+
+    # Load checkpoint.
+    print('==> Resuming from checkpoint..')
+    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load(MNIST_CKPT)
+    net.load_state_dict(checkpoint['net'])
+    start_epoch = checkpoint['epoch']
+    print(start_epoch)
+    try:
+        best_acc = checkpoint['auc_score']
+        if best_acc > 90:
+            best_acc = best_acc / 100
+        print('best_auc: %.2f%%' % (100. * best_acc))
+    except:
+        pass
+
+    l2dist = PairwiseDistance(2)
+    criterion_none = nn.CrossEntropyLoss(reduction='none')
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
+    # attacks
+    bim_attack = Attack(net, F.cross_entropy)
+    cw_attack = cw.L2Adversary(targeted=False,
+                               confidence=0.9,
+                               search_steps=10,
+                               box=(0, 1),
+                               optimizer_lr=0.001)
+    jsma_params = {'theta': 1, 'gamma': 0.1,
+                   'clip_min': 0., 'clip_max': 1.,
+                   'nb_classes': 10}
+    jsma_attack = SaliencyMapMethod(net, **jsma_params)
+
+
+    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+        # fgsm, bim_a, bim_b, jsma, cw
+        # train(epoch)
+        # test(epoch, methods='fgsm', update=True)
+
+        methods = 'bim_a'
+        print('MNIST ',methods)
+        test(epoch, methods=methods, update=False, random_method=False)
+        break

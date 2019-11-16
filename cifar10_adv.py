@@ -12,10 +12,11 @@ import numpy as np
 from adversary.fgsm import Attack
 from torch.autograd import Variable
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc, creterion_func
+from util.roc_plot import roc_auc, creterion_func
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import random
+import sys
 
 # Training
 def train(epoch):
@@ -44,7 +45,7 @@ def train(epoch):
     acc = correct / total
     print('train acc: %.2f%%' % (100.*acc))
 
-def test(epoch, methods='fgsm', update=False, random_method=False):
+def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.5):
     global best_acc
     net.eval()
     correct = 0
@@ -95,11 +96,11 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         if methods == 'fgsm':
             x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=30, bim_a=True,confidence=confidence)
         elif methods == 'bim_b':
             x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10)
         elif methods == 'jsma':
-            x_adv = jsma_attack.generate(inputs, y=predicted)
+            x_adv = jsma_attack.generate(inputs, y=predicted, confidence=confidence)
         else:
             x_adv = cw_attack(net, inputs, predicted, to_numpy=False)
 
@@ -130,6 +131,8 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
         adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
         # print(batch_idx)
+        if batch_idx == 8:
+            break
 
     acc = correct / total
     attack_acc = attack_correct / total_right
@@ -149,6 +152,8 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
     creterion_func(benign_fgsm_loss, adv_fgsm_loss)
+    aucs.append(auc_score)
+    sys.stdout.flush()
 
     # Save checkpoint.
     if auc_score >= best_acc and update:
@@ -163,7 +168,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         torch.save(state, CLASSIFY_CKPT)
         best_acc = auc_score
 
-def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
+def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence=0.5):
     net.eval()
     x = Variable(x.to(device), requires_grad=True)
     y_true = Variable(y_true.to(device), requires_grad=False)
@@ -172,7 +177,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
         x_adv = bim_attack.fgsm(x, y_true, False, eps)
     else:
         if bim_a:
-            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration)
+            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, confidence=confidence)
         else:
             x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration)
 
@@ -180,6 +185,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
 
 
 if __name__ == '__main__':
+    # BATCH_SIZE_CIFAR10 = 8
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -234,7 +240,7 @@ if __name__ == '__main__':
     # attacks
     bim_attack = Attack(net, F.cross_entropy)
     cw_attack = cw.L2Adversary(targeted=False,
-                               confidence=0.9,
+                               confidence=0.5,
                                search_steps=10,
                                box=(0, 1),
                                optimizer_lr=0.001)
@@ -244,13 +250,34 @@ if __name__ == '__main__':
     jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
 
-    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-        # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
+    # for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+    #     # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
+    #
+    #     # train(epoch)
+    #     # test(epoch, methods='fgsm', update=True)
+    #
+    #     methods = 'cw'
+    #     print('CIFAR10 ',methods)
+    #     test(epoch, methods=methods, update=False, random_method=False)
+    #     break
 
+    aucs = []
+    for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
+        # fgsm, bim_a, bim_b, jsma, cw
         # train(epoch)
         # test(epoch, methods='fgsm', update=True)
-
-        methods = 'fgsm'
-        print('CIFAR10 ',methods)
-        test(epoch, methods=methods, update=False, random_method=False)
+        methods = 'cw'
+        print('CIFAR ', methods)
+        confidences = np.arange(50, 100, 4) / 100
+        print(confidences)
+        sys.stdout.flush()
+        for i in confidences:
+            print('==========',i)
+            cw_attack = cw.L2Adversary(targeted=False,
+                                       confidence=i,
+                                       search_steps=10,
+                                       box=(0, 1),
+                                       optimizer_lr=0.001)
+            test(epoch, methods=methods, update=False, random_method=False, confidence=i)
+        print(aucs)
         break

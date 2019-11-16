@@ -9,14 +9,15 @@ from models.conv import MnistModel
 from settings import *
 import torch.nn.functional as F
 import numpy as np
-from adversary.fgsm import Attack
+from adversary.fgsm import Attack, ShannonEntropy
 from torch.autograd import Variable
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc, creterion_func
+from util.roc_plot import roc_auc, creterion_func
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import torch
 import random
+import sys
 
 # Training
 def train(epoch):
@@ -46,7 +47,7 @@ def train(epoch):
     print('train acc: %.2f%%' % (100.*acc))
 
 
-def test(epoch, methods='fgsm', update=False, random_method=False):
+def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.5):
     global best_acc
     net.eval()
     correct = 0
@@ -77,11 +78,12 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
 
         # benign fgsm
         benign_fgsm = FGSM(inputs, predicted, eps=EPS_MINIST)
-        benign_fgsm__outputs = net(benign_fgsm)
-        _, benign_fgsm_predicted = benign_fgsm__outputs.max(1)
-        # temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy()
-        temp1 = criterion_none(benign_fgsm__outputs, predicted).detach().cpu().numpy() - \
-                criterion_none(outputs, predicted).detach().cpu().numpy()
+        benign_fgsm_outputs = net(benign_fgsm)
+        _, benign_fgsm_predicted = benign_fgsm_outputs.max(1)
+        temp1 = criterion_none(benign_fgsm_outputs, predicted).detach().cpu().numpy()
+        # temp1 = criterion_none(benign_fgsm_outputs, predicted).detach().cpu().numpy() - \
+        #         criterion_none(outputs, predicted).detach().cpu().numpy()
+        # temp1 = ShannonEntropy(benign_fgsm_outputs, F.softmax(outputs, dim=-1)).detach().cpu().numpy()
 
         if random_method:
             tag = random.randint(0, 4)
@@ -100,11 +102,11 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         if methods == 'fgsm':
             x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50, bim_a=True)
+            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50, bim_a=True, confidence=confidence)
         elif methods == 'bim_b':
             x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50)
         elif methods == 'jsma':
-            x_adv = jsma_attack.generate(inputs, y=predicted)
+            x_adv = jsma_attack.generate(inputs, y=predicted, confidence=confidence)
         else:
             x_adv = cw_attack(net, inputs, predicted, to_numpy=False)
 
@@ -118,9 +120,10 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         adv_fgsm = FGSM(x_adv, adv_predicted, eps=EPS_MINIST)
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
-        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
-        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() - \
-                criterion_none(adv_outputs, adv_predicted).detach().cpu().numpy()
+        temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
+        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() - \
+        #         criterion_none(adv_outputs, adv_predicted).detach().cpu().numpy()
+        # temp2 = ShannonEntropy(adv_fgsm_outputs, F.softmax(adv_outputs, dim=-1)).detach().cpu().numpy()
 
 
         # select the examples which is attacked successfully
@@ -132,7 +135,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         else:
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
-        # if batch_idx == 5:
+        # if batch_idx == 20:
         #     break
 
         total_attack_sucess += len(temp1[0])
@@ -156,6 +159,8 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
     print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100.*auc_score))
+    aucs.append(auc_score)
+    sys.stdout.flush()
 
     # plot losses
     creterion_func(benign_fgsm_loss, adv_fgsm_loss)
@@ -174,7 +179,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False):
         torch.save(state, MNIST_CKPT)
         best_acc = auc_score
 
-def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
+def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence=0.5):
     net.eval()
     x = Variable(x.to(device), requires_grad=True)
     y_true = Variable(y_true.to(device), requires_grad=False)
@@ -183,7 +188,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False):
         x_adv = bim_attack.fgsm(x, y_true, False, eps)
     else:
         if bim_a:
-            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration)
+            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, confidence=confidence)
         else:
             x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration)
 
@@ -245,7 +250,7 @@ if __name__ == '__main__':
     # attacks
     bim_attack = Attack(net, F.cross_entropy)
     cw_attack = cw.L2Adversary(targeted=False,
-                               confidence=0.9,
+                               confidence=0.5,
                                search_steps=10,
                                box=(0, 1),
                                optimizer_lr=0.001)
@@ -255,12 +260,24 @@ if __name__ == '__main__':
     jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
 
+    aucs = []
     for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
         # fgsm, bim_a, bim_b, jsma, cw
         # train(epoch)
         # test(epoch, methods='fgsm', update=True)
+        methods = 'fgsm'
+        print('MNIST ', methods)
+        # confidences = np.arange(50, 100, 4) / 100
+        confidences = [0.5]
 
-        methods = 'bim_a'
-        print('MNIST ',methods)
-        test(epoch, methods=methods, update=False, random_method=False)
+        print(confidences)
+        for i in confidences:
+            print('==========',i)
+            cw_attack = cw.L2Adversary(targeted=False,
+                                       confidence=i,
+                                       search_steps=10,
+                                       box=(0, 1),
+                                       optimizer_lr=0.001)
+            test(epoch, methods=methods, update=False, random_method=False, confidence=i)
+        print(aucs)
         break

@@ -5,11 +5,11 @@ from torch.autograd import Variable
 from torch import optim
 import torch.nn.functional as F
 import pickle
-from utils.wordProcess import *
+from util.wordProcess import *
 from models.moiveRnn import Model
 from settings import *
 from adversary.fgsm import Attack_MOVIE
-from utils.roc_plot import roc_auc
+from util.roc_plot import roc_auc, creterion_func
 from adversary.jsma import jsma
 
 def FGSM(x, y_true, eps=0.001):
@@ -115,7 +115,7 @@ def train():
                     os.mkdir('checkpoint')
                 torch.save(state, MOIVE_CKPT_ADV_TRAINING)
 
-def test():
+def test(stop_confidence):
     right = 0
     total = 0
     total_changed = 0
@@ -141,7 +141,7 @@ def test():
             if predicted.eq(target_data).sum().item():
                 right += 1
                 changed, benign_adv, change_words, loss_benign = jsma(input_data.clone(), target, model,
-                                                                      nb_classes=2, max_iter=20)
+                                                                      nb_classes=2, max_iter=20, stop_confidence=stop_confidence)
                 if changed:
                     total_changed += 1
                     total_changed_num += change_words
@@ -165,8 +165,8 @@ def test():
             total += 1
             if (idx+1) % 2000 == 0:
                 print('idx: %d' % (idx))
-            # if idx == 20100:
-            #     break
+            if idx >= 20400:
+                break
 
     print('-' * 30)
     print('acc: ', right / total)
@@ -183,6 +183,8 @@ def test():
     auc_score = roc_auc(labels, losses)
     print('split criterion', np.median(losses))
     print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
+    creterion_func(benignloss_list, advloss_list)
+    aucs.append(auc_score)
 
 
 if __name__ == '__main__':
@@ -200,13 +202,19 @@ if __name__ == '__main__':
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-    checkpoint = torch.load(MOIVE_CKPT)  # MOIVE_CKPT_ADV_TRAINING
+    checkpoint = torch.load(MOIVE_CKPT_ADV_TRAINING)  # MOIVE_CKPT_ADV_TRAINING
     model.load_state_dict(checkpoint['net'])
     best_acc = 0
 
     f = open('data/labeledTrainData.tsv').readlines()
     bim_attack = Attack_MOVIE(model, F.cross_entropy)
 
-
-    test()
+    confidences = np.arange(50, 100, 4) / 100
+    confidences = [0.5]
+    print(confidences)
+    aucs = []
+    for i in confidences:
+        print('==========', i)
+        test(i)
     # train()
+    print(aucs)

@@ -16,7 +16,7 @@ import torch.nn.functional as F
 import numpy as np
 from adversary.fgsm import Attack
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc
+from util.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 import torchvision.models as models
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     # attacks
     bim_attack = Attack(net, F.cross_entropy)
     cw_attack = cw.L2Adversary(targeted=False,
-                               confidence=0.9,
+                               confidence=0.5,
                                search_steps=10,
                                box=(0, 1),
                                optimizer_lr=0.001)
@@ -274,4 +274,4 @@ if __name__ == '__main__':
     #     train(i)
     #     if (i+1) % 1 == 0:
     #         test('fgsm', update=True)
-    test('fgsm', update=False)
+    test('cw', update=False)

@@ -26,7 +26,7 @@ import pretrainedmodels.utils as utils
 import numpy as np
 from adversary.fgsm import Attack, where
 from torch.nn.modules.distance import PairwiseDistance
-from utils.roc_plot import roc_auc
+from util.roc_plot import roc_auc
 import adversary.cw as cw
 from adversary.jsma import SaliencyMapMethod
 

@@ -5,7 +5,7 @@
       <paths name="qifeiz@162.105.183.66:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/qifeiz/defense" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/defense" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

@@ -2,6 +2,7 @@
 Referential implementation: cleverhans tensorflow
 """
 import torch
+import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 from settings import *
@@ -24,12 +25,14 @@ class SaliencyMapMethod(object):
         self.clip_min = kwargs['clip_min']
         self.clip_max = kwargs['clip_max']
         self.nb_classes = kwargs['nb_classes']
+        self.confidence = 0.5
 
-    def generate(self, x, y=None, y_target=None):
+    def generate(self, x, y=None, y_target=None, confidence=0.5):
         """
         :param x: The model's inputs.
         :return:
         """
+        self.confidence = confidence
         self.y = y
         self.y_target = y_target
         # Create random targets if y_target not provided
@@ -56,7 +59,8 @@ class SaliencyMapMethod(object):
             gamma=self.gamma,
             clip_min=self.clip_min,
             clip_max=self.clip_max,
-            nb_classes=self.nb_classes)
+            nb_classes=self.nb_classes,
+            confidence=self.confidence)
         return x_adv
 
     def get_or_guess_labels(self, x):
@@ -67,7 +71,7 @@ class SaliencyMapMethod(object):
             _, labels = outputs.max(1)
         return labels
 
-def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_classes):
+def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_classes, confidence=0.5):
     """
     :param x: the input tensor
     :param y_target: the target tensor
@@ -113,7 +117,8 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
         x_in = Variable(x_in.data, requires_grad=True)
         y_in_one_hot = torch.zeros(y_in.shape[0], nb_classes).scatter_(1, y_in.cpu().reshape(-1, 1).long(), 1).to(device)
         logits = model(x_in)
-        _, preds = logits.max(1)
+        # _, preds = logits.max(1)
+        probs, preds = F.softmax(logits, dim=-1).max(1)
 
         # create the Jacobian
         grads = None
@@ -168,7 +173,7 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
         p2_one_hot = torch.zeros(y_in.shape[0], nb_features).scatter_(1, p2.reshape(-1,1).long(), 1).to(device)
 
         # Check if more modification is needed for each sample
-        mod_not_done = y_in != preds
+        mod_not_done = (y_in != preds) & (probs >= confidence)
         cond = mod_not_done & (torch.sum(domain_in, dim=1) >= 2)
 
         #update the search domain
@@ -199,7 +204,7 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
 
     return x_adv
 
-def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
+def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False, stop_confidence=0.5):
     """
     jacobian-based attack on RNNs
     :param x_in:
@@ -210,6 +215,7 @@ def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
     :param fix_iter:
     :return:
     """
+    stop_confidence = 1 - stop_confidence
     criterion_none = nn.CrossEntropyLoss(reduction='none')
     logits, embeddings = model(x_in)
     change_words = 0
@@ -244,7 +250,7 @@ def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False):
             if confidence < min_confidence:
                 min_confidence = confidence
                 best_word = i
-            if confidence < 0.5:  # for speed up, u can delete it
+            if confidence < stop_confidence:  # for speed up, u can delete it
                 break
         x_in[max_index] = best_word
         logits, _ = model(x_in)

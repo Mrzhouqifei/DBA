@@ -17,7 +17,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from settings import *
 
-import utils.runutils as runutils
+import util.runutils as runutils
 
 
 def _var2numpy(var):

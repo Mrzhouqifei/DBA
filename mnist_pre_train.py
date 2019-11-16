@@ -91,10 +91,10 @@ if __name__ == '__main__':
     print('==> Building model..')
     net = MnistModel()
     net = net.to(device)
-
-    if device == 'cuda':
-        net = torch.nn.DataParallel(net)
-        cudnn.benchmark = True
+    #
+    # if device == 'cuda':
+    #     net = torch.nn.DataParallel(net)
+    #     cudnn.benchmark = True
 
     if False:
         # Load checkpoint.

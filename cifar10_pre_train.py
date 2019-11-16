@@ -65,6 +65,7 @@ def test(epoch):
 
 
 if __name__ == '__main__':
+    # BATCH_SIZE = 8
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -112,6 +113,6 @@ if __name__ == '__main__':
 
 
     for epoch in range(start_epoch, start_epoch+450):
-        train(epoch)
+        # train(epoch)
         test(epoch)
 

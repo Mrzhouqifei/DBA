@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch import optim
 import pickle
-from utils.wordProcess import *
+from util.wordProcess import *
 from models.moiveRnn import Model
 from settings import *
 

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="qifeiz@162.105.183.66:22">
+  <component name="PublishConfigData" autoUpload="Always" serverName="qifeiz@162.105.183.118:22">
     <serverData>
-      <paths name="qifeiz@162.105.183.66:22">
+      <paths name="qifeiz@162.105.183.118:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/defense" local="$PROJECT_DIR$" />
+            <mapping deploy="/defense" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

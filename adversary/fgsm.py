@@ -122,7 +122,7 @@ class Attack(object):
             modify = alpha*x_adv.grad.sign_().detach().cpu().numpy()
             modify[flag] = 0
 
-            x_adv = x_adv + torch.from_numpy(modify).to(device)
+            x_adv = x_adv + torch.from_numpy(modify).cuda()
             x_adv = where(x_adv > x-eps, x_adv, x-eps)
             x_adv = where(x_adv < x+eps, x_adv, x+eps)
             x_adv = torch.clamp(x_adv, x_val_min, x_val_max)
@@ -161,7 +161,12 @@ def where(cond, x, y):
     return (cond*x) + ((1-cond)*y)
 
 
+# def ShannonEntropy(logits, soft_label):
+#     log_probs = F.log_softmax(logits, dim=-1)
+#     H = - torch.sum(torch.mul(soft_label, log_probs), dim=-1)
+#     return H
+
 def ShannonEntropy(logits, soft_label):
-    log_probs = F.log_softmax(logits, dim=-1)
-    H = - torch.sum(torch.mul(soft_label, log_probs), dim=-1)
+    pred_probs = F.softmax(logits, dim=-1)
+    H = torch.sum(torch.mul(soft_label, torch.log(soft_label/pred_probs)), dim=-1)
     return H

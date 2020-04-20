@@ -49,7 +49,7 @@ class SaliencyMapMethod(object):
                 return result
 
             labels = self.get_or_guess_labels(x)
-            self.y_target = torch.from_numpy(random_targets(labels.cpu().numpy())).to(device)
+            self.y_target = torch.from_numpy(random_targets(labels.cpu().numpy())).cuda()
 
         x_adv = jsma_symbolic(
             x,
@@ -86,11 +86,12 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
     nb_features = int(np.prod(x.size()[1:]))
 
     max_iters = np.floor(nb_features * gamma / 2)
+    # print('max_iters: ', max_iters)
     increase = bool(theta > 0)
 
     tmp = np.ones((nb_features, nb_features), int)
     np.fill_diagonal(tmp, 0)
-    zero_diagonal = torch.from_numpy(tmp).float().to(device)
+    zero_diagonal = torch.from_numpy(tmp).float().cuda()
 
     # Compute our initial search domain. We optimize the initial search domain
     # by removing all features that are already at their maximum values (if
@@ -115,7 +116,7 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
 
     def body(x_in, y_in, domain_in, i_in, cond_in):
         x_in = Variable(x_in.data, requires_grad=True)
-        y_in_one_hot = torch.zeros(y_in.shape[0], nb_classes).scatter_(1, y_in.cpu().reshape(-1, 1).long(), 1).to(device)
+        y_in_one_hot = torch.zeros(y_in.shape[0], nb_classes).scatter_(1, y_in.cpu().reshape(-1, 1).long(), 1).cuda()
         logits = model(x_in)
         # _, preds = logits.max(1)
         probs, preds = F.softmax(logits, dim=-1).max(1)
@@ -169,15 +170,15 @@ def jsma_symbolic(x, y_target, model, theta, gamma, clip_min, clip_max, nb_class
 
         p1 = np.mod(best, nb_features)
         p2 = np.floor_divide(best, nb_features)
-        p1_one_hot = torch.zeros(y_in.shape[0], nb_features).scatter_(1, p1.reshape(-1,1).long(), 1).to(device)
-        p2_one_hot = torch.zeros(y_in.shape[0], nb_features).scatter_(1, p2.reshape(-1,1).long(), 1).to(device)
+        p1_one_hot = torch.zeros(y_in.shape[0], nb_features).scatter_(1, p1.reshape(-1,1).long(), 1).cuda()
+        p2_one_hot = torch.zeros(y_in.shape[0], nb_features).scatter_(1, p2.reshape(-1,1).long(), 1).cuda()
 
         # Check if more modification is needed for each sample
         mod_not_done = (y_in != preds) & (probs >= confidence)
         cond = mod_not_done & (torch.sum(domain_in, dim=1) >= 2)
 
         #update the search domain
-        cond_float = cond.reshape(-1, 1).float().to(device)
+        cond_float = cond.reshape(-1, 1).float().cuda()
         to_mod = (p1_one_hot + p2_one_hot) * cond_float
 
         domain_out = domain_in - to_mod
@@ -258,4 +259,4 @@ def jsma(x_in, y_in, model, nb_classes, max_iter=10, fix_iter=False, stop_confid
         changed = bool(predicted != y_in)
         if fix_iter:
             changed = False
-    return changed, x_in, change_words, criterion_none(logits, torch.LongTensor([y_in]).to(device)).detach().cpu().numpy()[0]
+    return changed, x_in, change_words, criterion_none(logits, torch.LongTensor([y_in]).cuda()).detach().cpu().numpy()[0]

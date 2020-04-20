@@ -8,13 +8,13 @@ import pickle
 from util.wordProcess import *
 from models.moiveRnn import Model
 from settings import *
-from adversary.fgsm import Attack_MOVIE
+from adversary.fgsm import Attack_MOVIE,ShannonEntropy
 from util.roc_plot import roc_auc, creterion_func
 from adversary.jsma import jsma
 
 def FGSM(x, y_true, eps=0.001):
-    x = Variable(x.to(device), requires_grad=True)
-    y_true = Variable(y_true.to(device), requires_grad=False)
+    x = Variable(x.cuda(), requires_grad=True)
+    y_true = Variable(y_true.cuda(), requires_grad=False)
 
     x_adv = bim_attack.fgsm(x, y_true, False, eps)
     return x_adv
@@ -38,9 +38,9 @@ def train():
                 input_data = [word_dict[word] for word in data.split(' ')]
                 if len(input_data) > max_sequence_len:
                     input_data = input_data[0:max_sequence_len]
-                input_data = Variable(torch.LongTensor(input_data)).to(device)
+                input_data = Variable(torch.LongTensor(input_data)).cuda()
                 target = int(lines.split('\t')[1])
-                target_data = Variable(torch.LongTensor([target])).to(device)
+                target_data = Variable(torch.LongTensor([target])).cuda()
 
                 if idx <= 20000:
                     _, input_data_embedding = model(input_data)
@@ -131,9 +131,9 @@ def test(stop_confidence):
             input_data = [word_dict[word] for word in data.split(' ')]
             if len(input_data) > max_sequence_len:
                 input_data = input_data[0:max_sequence_len]
-            input_data = Variable(torch.LongTensor(input_data)).to(device)
+            input_data = Variable(torch.LongTensor(input_data)).cuda()
             target = int(lines.split('\t')[1])
-            target_data = Variable(torch.LongTensor([target])).to(device)
+            target_data = Variable(torch.LongTensor([target])).cuda()
 
             y_pred, embeddings = model(input_data)
             _, predicted = y_pred.max(1)
@@ -141,19 +141,23 @@ def test(stop_confidence):
             if predicted.eq(target_data).sum().item():
                 right += 1
                 changed, benign_adv, change_words, loss_benign = jsma(input_data.clone(), target, model,
-                                                                      nb_classes=2, max_iter=20, stop_confidence=stop_confidence)
+                                                                      nb_classes=2, max_iter=iters, stop_confidence=stop_confidence)
                 if changed:
                     total_changed += 1
                     total_changed_num += change_words
-                    _, input_data_embedding = model(input_data)
-                    _, benign_adv_embedding = model(benign_adv)
+                    predicted_outputs, input_data_embedding = model(input_data)
+                    predicted_outputs2, benign_adv_embedding = model(benign_adv)
                     benign_undercover = FGSM(input_data_embedding, target_data)
                     adv_undercover = FGSM(benign_adv_embedding, 1 - target_data)
 
                     benign_outputs, _ = model(benign_undercover, after_embedding=True)
                     temp1 = criterion_none(benign_outputs, target_data).detach().cpu().numpy()[0]
+                    # temp1 = ShannonEntropy(benign_outputs, F.softmax(predicted_outputs,dim=1)).detach().cpu().numpy()[0]
+
                     adv_outputs, _ = model(adv_undercover, after_embedding=True)
                     temp2 = criterion_none(adv_outputs, 1 - target_data).detach().cpu().numpy()[0]
+                    # temp2 = ShannonEntropy(adv_outputs, F.softmax(predicted_outputs2, dim=1)).detach().cpu().numpy()[0]
+
 
                     _, undercover_benign_predicted = benign_outputs.max(1)
                     _, undercover_adv_predicted = adv_outputs.max(1)
@@ -165,26 +169,38 @@ def test(stop_confidence):
             total += 1
             if (idx+1) % 2000 == 0:
                 print('idx: %d' % (idx))
-            if idx >= 20400:
+            # if idx >= 20400:
+            #     break
+            if right >= 1000:
                 break
 
-    print('-' * 30)
-    print('acc: ', right / total)
-    print('mean changed words', total_changed_num / total_changed)
-    print('benignloss_mean: ', np.mean(benignloss_list))
-    print('advloss_mean: ', np.mean(advloss_list))
-    print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_right/total_changed,
-                                                            100. * adv_right/total_changed))
-
-    benignloss_list = np.array(benignloss_list)
-    advloss_list = np.array(advloss_list)
+    # print('-' * 30)
+    # print('acc: ', right / total)
+    # print('mean changed words', total_changed_num / total_changed)
+    # print('benignloss_mean: ', np.mean(benignloss_list))
+    # print('advloss_mean: ', np.mean(advloss_list))
+    # print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_right/total_changed,
+    #                                                         100. * adv_right/total_changed))
+    #
+    # benignloss_list = np.array(benignloss_list)
+    # advloss_list = np.array(advloss_list)
     losses = np.concatenate((benignloss_list, advloss_list), axis=0)
-    labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
-    auc_score = roc_auc(labels, losses)
-    print('split criterion', np.median(losses))
-    print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
-    creterion_func(benignloss_list, advloss_list)
-    aucs.append(auc_score)
+    # labels = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
+    # auc_score = roc_auc(labels, losses)
+    # print('split criterion', np.median(losses))
+    # print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
+    # creterion_func(benignloss_list, advloss_list)
+    # aucs.append(auc_score)
+
+    split = np.mean(losses)
+    from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score, confusion_matrix
+    a = np.concatenate((np.zeros_like(benignloss_list), np.ones_like(advloss_list)), axis=0)
+    b = (losses > split).astype(int)
+    cm = confusion_matrix(a, b)
+    print(right, right-np.sum(cm)/2)
+    print(cm)
+    acc_score = accuracy_score(a, b)
+    print(np.round(recall_score(a, b),4), np.round(precision_score(a, b),4), np.round(f1_score(a, b),4), np.round(acc_score,4))
 
 
 if __name__ == '__main__':
@@ -197,7 +213,7 @@ if __name__ == '__main__':
     embedding_dim = 50
     hidden_dim = 100
 
-    model = Model(embedding_dim, hidden_dim, vocabLimit).to(device)
+    model = Model(embedding_dim, hidden_dim, vocabLimit).cuda()
     criterion_none = nn.CrossEntropyLoss(reduction='none')
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -209,12 +225,15 @@ if __name__ == '__main__':
     f = open('data/labeledTrainData.tsv').readlines()
     bim_attack = Attack_MOVIE(model, F.cross_entropy)
 
-    confidences = np.arange(50, 100, 4) / 100
+    # iters = 4
+    # confidences = np.arange(50, 100, 4) / 100
     confidences = [0.5]
     print(confidences)
     aucs = []
     for i in confidences:
         print('==========', i)
-        test(i)
+        for iters in [16]:
+            print(iters)
+            test(i)
     # train()
-    print(aucs)
+    # print(aucs)

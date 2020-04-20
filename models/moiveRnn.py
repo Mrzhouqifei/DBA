@@ -34,7 +34,7 @@ class Model(torch.nn.Module):
         return x, var_embeddings
 
     def init_hidden(self):
-        return (Variable(torch.zeros(2, 1, self.hidden_dim)).to(device),
-                Variable(torch.zeros(2, 1, self.hidden_dim)).to(device))
-        # return (Variable(torch.zeros(1, 1, self.hidden_dim)).to(device),
-        #         Variable(torch.zeros(1, 1, self.hidden_dim)).to(device))
+        return (Variable(torch.zeros(2, 1, self.hidden_dim)).cuda(),
+                Variable(torch.zeros(2, 1, self.hidden_dim)).cuda())
+        # return (Variable(torch.zeros(1, 1, self.hidden_dim)).cuda(,
+        #         Variable(torch.zeros(1, 1, self.hidden_dim)).cuda()

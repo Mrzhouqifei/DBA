@@ -75,7 +75,7 @@ def make_cuda_consistent(refobj, *args):
     for v in args:
         cuda_state = get_cuda_state(v)
         if cuda_state != ref_cuda_state:
-            v = v.to(device)
+            v = v.cuda()
         result_args.append(v)
     return tuple(result_args)
 

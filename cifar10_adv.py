@@ -26,7 +26,7 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets = inputs.cuda(), targets.cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
         _, predicted = outputs.max(1)
@@ -59,8 +59,9 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
     adv_fgsm_loss = None
     l2sum = 0
 
+    F_len = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets = inputs.cuda(), targets.cuda()
         outputs = net(inputs)
         _, predicted = outputs.max(1)
         correct += predicted.eq(targets).sum().item()
@@ -68,10 +69,10 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         total += inputs.size(0)
         temp_batch = selected.sum()
 
-        inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
-        targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
-        predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).cuda()
+        targets = torch.from_numpy(targets.cpu().numpy()[selected]).cuda()
+        predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).cuda()
+        # outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).cuda(
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -94,11 +95,11 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
                 methods = 'cw'
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10*2, alpha=1 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=30, bim_a=True,confidence=confidence)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=100, bim_a=True,confidence=confidence)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPS_CIFAR10, alpha=1 / 255, iteration=10)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=int(min(EPS_FGSM*255 + 4, 1.25*EPS_FGSM*255)))
         elif methods == 'jsma':
             x_adv = jsma_attack.generate(inputs, y=predicted, confidence=confidence)
         else:
@@ -118,6 +119,13 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
 
         # select the examples which is attacked successfully
+        t_len = F_len + len(temp1)
+        if t_len > image_num:
+            temp1 = temp1[:image_num - F_len]
+            temp2 = temp2[:image_num - F_len]
+            selected = selected[:image_num - F_len]
+        F_len += len(temp1)
+
         temp1 = temp1[selected].reshape(1, -1)
         temp2 = temp2[selected].reshape(1, -1)
         if batch_idx != 0:
@@ -127,31 +135,47 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
 
-        total_attack_sucess += len(temp1[0])
-        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
-        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
+        # total_attack_sucess += len(temp1[0])
+        # benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
+        # adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
         # print(batch_idx)
-        if batch_idx == 8:
-            break
 
-    acc = correct / total
-    attack_acc = attack_correct / total_right
-    benign_fgsm_acc = benign_fgsm_correct / total_attack_sucess
-    adv_fgsm_acc = adv_fgsm_correct / total_attack_sucess
-    print('-' * 20, total, total_right)
-    print('valid acc: %.2f%%' % (100. * acc))
-    print('attact acc: %.2f%% L2 perturbation: %.2f' % (100. * attack_acc, l2sum / total_right))
-    print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_fgsm_acc, 100. * adv_fgsm_acc))
+    # acc = correct / total
+    # attack_acc = attack_correct / total_right
+    # benign_fgsm_acc = benign_fgsm_correct / total_attack_sucess
+    # adv_fgsm_acc = adv_fgsm_correct / total_attack_sucess
+    # print('-' * 20, total, total_right)
+    # print('valid acc: %.2f%%' % (100. * acc))
+    # print('attact acc: %.2f%% L2 perturbation: %.2f' % (100. * attack_acc, l2sum / total_right))
+    # print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100. * benign_fgsm_acc, 100. * adv_fgsm_acc))
     benign_fgsm_loss = benign_fgsm_loss.reshape(-1)
     adv_fgsm_loss = adv_fgsm_loss.reshape(-1)
 
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
-    labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
-    auc_score = roc_auc(labels, losses)
-    print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
-    print('split criterion', np.median(losses))
-    print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
-    creterion_func(benign_fgsm_loss, adv_fgsm_loss)
+    # labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
+    # auc_score = roc_auc(labels, losses)
+    # print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
+    # print('split criterion', np.median(losses))
+    # print('[ROC_AUC] score: %.2f%%' % (100. * auc_score))
+
+
+    split = np.mean(losses)
+    from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score, confusion_matrix
+    a = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
+    b = (losses > split).astype(int)
+    cm = confusion_matrix(a, b)
+    print(F_len, F_len - np.sum(cm) / 2)
+    print(cm)
+    acc_score = accuracy_score(a, b)
+    print(np.round(recall_score(a, b), 4), np.round(precision_score(a, b), 4), np.round(f1_score(a, b), 4),
+          np.round(acc_score, 4))
+
+
+    auc_score = (np.sum(benign_fgsm_loss<split) + np.sum(adv_fgsm_loss>split))/len(losses)
+    # print('acc: %.2f%%' % (100. * auc_score))
+
+
+    # creterion_func(benign_fgsm_loss, adv_fgsm_loss)
     aucs.append(auc_score)
     sys.stdout.flush()
 
@@ -170,8 +194,8 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
 
 def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence=0.5):
     net.eval()
-    x = Variable(x.to(device), requires_grad=True)
-    y_true = Variable(y_true.to(device), requires_grad=False)
+    x = Variable(x.cuda(), requires_grad=True)
+    y_true = Variable(y_true.cuda(), requires_grad=False)
 
     if iteration == 1:
         x_adv = bim_attack.fgsm(x, y_true, False, eps)
@@ -186,6 +210,7 @@ def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence
 
 if __name__ == '__main__':
     # BATCH_SIZE_CIFAR10 = 8
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -214,9 +239,9 @@ if __name__ == '__main__':
     # Model
     print('==> Building model..')
     net = PreActResNet18()
-    net = net.to(device)
+    net = net.cuda()
 
-    if device == 'cuda':
+    if torch.cuda.device_count() > 0:
         net = torch.nn.DataParallel(net)
         cudnn.benchmark = True
 
@@ -226,11 +251,11 @@ if __name__ == '__main__':
     checkpoint = torch.load(CLASSIFY_CKPT)
     net.load_state_dict(checkpoint['net'])
     start_epoch = checkpoint['epoch']
-    best_acc = checkpoint['acc']
-    if best_acc > 90:
-        best_acc = best_acc / 100
-    print(start_epoch)
-    print('best_acc: %.2f%%' % (100. * best_acc))
+    # best_acc = checkpoint['acc']
+    # if best_acc > 90:
+    #     best_acc = best_acc / 100
+    # print(start_epoch)
+    # print('best_acc: %.2f%%' % (100. * best_acc))
 
     l2dist = PairwiseDistance(2)
     criterion_none = nn.CrossEntropyLoss(reduction='none')
@@ -244,40 +269,38 @@ if __name__ == '__main__':
                                search_steps=10,
                                box=(0, 1),
                                optimizer_lr=0.001)
-    jsma_params = {'theta': 1, 'gamma': 0.1,
-                   'clip_min': 0., 'clip_max': 1.,
-                   'nb_classes': len(classes)}
-    jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
-
-    # for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
-    #     # fgsm, bim_a, bim_b, jsma, cw  jsma only support batch <= 40 in our machine
-    #
-    #     # train(epoch)
-    #     # test(epoch, methods='fgsm', update=True)
-    #
-    #     methods = 'cw'
-    #     print('CIFAR10 ',methods)
-    #     test(epoch, methods=methods, update=False, random_method=False)
-    #     break
 
     aucs = []
+
+    EPS_FGSM = 6/255
+    image_num = 1000
     for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
         # fgsm, bim_a, bim_b, jsma, cw
         # train(epoch)
         # test(epoch, methods='fgsm', update=True)
-        methods = 'cw'
+        methods = 'jsma'
+        # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
         print('CIFAR ', methods)
-        confidences = np.arange(50, 100, 4) / 100
+        confidences=[0.5]
+        # confidences = np.arange(54, 100, 4) / 100
         print(confidences)
         sys.stdout.flush()
         for i in confidences:
             print('==========',i)
+
             cw_attack = cw.L2Adversary(targeted=False,
                                        confidence=i,
                                        search_steps=10,
                                        box=(0, 1),
                                        optimizer_lr=0.001)
-            test(epoch, methods=methods, update=False, random_method=False, confidence=i)
-        print(aucs)
+
+            for gamma in [0.1, 0.2, 0.3]:
+                jsma_params = {'theta': 1, 'gamma': gamma,
+                               'clip_min': 0., 'clip_max': 1.,
+                               'nb_classes': len(classes)}
+                jsma_attack = SaliencyMapMethod(net, **jsma_params)
+                test(epoch, methods=methods, update=False, random_method=False, confidence=i)
+        # print(aucs)
         break

@@ -19,7 +19,23 @@ import torch
 import random
 import sys
 
+
+def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence=0.5):
+    net.eval()
+    x = Variable(x.cuda(), requires_grad=True)
+    y_true = Variable(y_true.cuda(), requires_grad=False)
+
+    if iteration == 1:
+        x_adv = bim_attack.fgsm(x, y_true, False, eps)
+    else:
+        if bim_a:
+            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, confidence=confidence)
+        else:
+            x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration)
+
+    return x_adv
 # Training
+
 def train(epoch):
     print('\nEpoch: %d' % epoch)
     scheduler.step()
@@ -27,7 +43,7 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets = inputs.cuda(), targets.cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
         _, predicted = outputs.max(1)
@@ -61,8 +77,9 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
     adv_fgsm_loss = None
     l2sum = 0
 
+    F_len = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets = inputs.cuda(), targets.cuda()
         outputs = net(inputs)
         _, predicted = outputs.max(1)
         correct += predicted.eq(targets).sum().item()
@@ -70,10 +87,11 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         total += inputs.size(0)
         temp_batch = selected.sum()
 
-        inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).to(device)
-        targets = torch.from_numpy(targets.cpu().numpy()[selected]).to(device)
-        predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).to(device)
-        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).to(device)
+        inputs = torch.from_numpy(inputs.cpu().numpy()[selected]).cuda()
+        targets = torch.from_numpy(targets.cpu().numpy()[selected]).cuda()
+        predicted = torch.from_numpy(predicted.cpu().numpy()[selected]).cuda()
+        outputs = torch.from_numpy(outputs.detach().cpu().numpy()[selected]).cuda()
+
         total_right += inputs.size(0)
 
         # benign fgsm
@@ -81,9 +99,7 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         benign_fgsm_outputs = net(benign_fgsm)
         _, benign_fgsm_predicted = benign_fgsm_outputs.max(1)
         temp1 = criterion_none(benign_fgsm_outputs, predicted).detach().cpu().numpy()
-        # temp1 = criterion_none(benign_fgsm_outputs, predicted).detach().cpu().numpy() - \
-        #         criterion_none(outputs, predicted).detach().cpu().numpy()
-        # temp1 = ShannonEntropy(benign_fgsm_outputs, F.softmax(outputs, dim=-1)).detach().cpu().numpy()
+        # temp1 = ShannonEntropy((benign_fgsm_outputs), F.softmax(outputs, dim=1)).detach().cpu().numpy()
 
         if random_method:
             tag = random.randint(0, 4)
@@ -100,11 +116,11 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
 
         # attack begin
         if methods == 'fgsm':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=1)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=1)
         elif methods == 'bim_a':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50, bim_a=True, confidence=confidence)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=50, bim_a=True, confidence=confidence)
         elif methods == 'bim_b':
-            x_adv = FGSM(inputs, predicted, eps=EPS_MINIST*2, alpha=1 / 255, iteration=50)
+            x_adv = FGSM(inputs, predicted, eps=EPS_FGSM, alpha=1 / 255, iteration=int(min(EPS_FGSM*255 + 4, 1.25*EPS_FGSM*255)))
         elif methods == 'jsma':
             x_adv = jsma_attack.generate(inputs, y=predicted, confidence=confidence)
         else:
@@ -121,12 +137,19 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         adv_fgsm_outputs = net(adv_fgsm)
         _, adv_fgsm_predicted = adv_fgsm_outputs.max(1)
         temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy()
-        # temp2 = criterion_none(adv_fgsm_outputs, adv_predicted).detach().cpu().numpy() - \
-        #         criterion_none(adv_outputs, adv_predicted).detach().cpu().numpy()
-        # temp2 = ShannonEntropy(adv_fgsm_outputs, F.softmax(adv_outputs, dim=-1)).detach().cpu().numpy()
-
+        # temp2 = ShannonEntropy((adv_fgsm_outputs), F.softmax(adv_outputs, dim=1)).detach().cpu().numpy()
 
         # select the examples which is attacked successfully
+        # temp1 = temp1.reshape(1, -1)
+        # temp2 = temp2.reshape(1, -1)
+        t_len = F_len+len(temp1)
+
+        if t_len > image_num:
+            temp1 = temp1[:image_num-F_len]
+            temp2 = temp2[:image_num-F_len]
+            selected = selected[:image_num-F_len]
+        F_len += len(temp1)
+
         temp1 = temp1[selected].reshape(1, -1)
         temp2 = temp2[selected].reshape(1, -1)
         if batch_idx != 0:
@@ -135,67 +158,65 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
         else:
             benign_fgsm_loss = temp1
             adv_fgsm_loss = temp2
-        # if batch_idx == 20:
-        #     break
 
-        total_attack_sucess += len(temp1[0])
-        benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
-        adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
+        # total_attack_sucess += len(temp1[0])
+        # benign_fgsm_correct += np.equal(benign_fgsm_predicted.cpu().numpy()[selected],(predicted.cpu().numpy()[selected])).sum()
+        # adv_fgsm_correct += np.equal(adv_fgsm_predicted.cpu().numpy()[selected],(adv_predicted.cpu().numpy()[selected])).sum()
 
-    acc = correct/total
-    attack_acc = attack_correct / total_right
-    benign_fgsm_acc = benign_fgsm_correct/ total_attack_sucess
-    adv_fgsm_acc = adv_fgsm_correct / total_attack_sucess
-    print('-'*20,total,total_right)
-    print('valid acc: %.2f%%' % (100.*acc))
-    print('attact acc: %.2f%% L2 perturbation: %.2f' % (100.*attack_acc, l2sum/total_right))
-    print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100.*benign_fgsm_acc, 100.*adv_fgsm_acc))
+    # acc = correct/total
+    # attack_acc = attack_correct / total_right
+    # benign_fgsm_acc = benign_fgsm_correct/ total_attack_sucess
+    # adv_fgsm_acc = adv_fgsm_correct / total_attack_sucess
+    # print('-'*20,total,total_right)
+    # print('valid acc: %.2f%%' % (100.*acc))
+    # print('attact acc: %.2f%% L2 perturbation: %.2f' % (100.*attack_acc, l2sum/total_right))
+    # print('fgsm attack benign: %.2f%% adversary: %.2f%%' % (100.*benign_fgsm_acc, 100.*adv_fgsm_acc))
+    # labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
+    # auc_score = roc_auc(labels, losses)
+    # print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
+    # print('split criterion', np.median(losses))
+    # print('[ROC_AUC] score: %.2f%%' % (100.*auc_score))
+
     benign_fgsm_loss = benign_fgsm_loss.reshape(-1)
     adv_fgsm_loss = adv_fgsm_loss.reshape(-1)
 
     losses = np.concatenate((benign_fgsm_loss, adv_fgsm_loss), axis=0)
-    labels = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
-    auc_score = roc_auc(labels, losses)
-    print(np.mean(benign_fgsm_loss), np.mean(adv_fgsm_loss))
-    print('split criterion', np.median(losses))
-    print('[ROC_AUC] score: %.2f%%' % (100.*auc_score))
-    aucs.append(auc_score)
+
+    split = np.mean(losses)
+
+    from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score, confusion_matrix
+    a = np.concatenate((np.zeros_like(benign_fgsm_loss), np.ones_like(adv_fgsm_loss)), axis=0)
+    b = (losses>split).astype(int)
+    cm = confusion_matrix(a, b)
+    print(F_len, F_len-np.sum(cm)/2)
+    print(cm)
+    acc_score = accuracy_score(a, b)
+    print(np.round(recall_score(a, b),4), np.round(precision_score(a, b),4), np.round(f1_score(a, b),4), np.round(acc_score,4))
+
+    aucs.append(acc_score)
     sys.stdout.flush()
 
     # plot losses
-    creterion_func(benign_fgsm_loss, adv_fgsm_loss)
-
+    # creterion_func(benign_fgsm_loss, adv_fgsm_loss)
 
     # Save checkpoint.
-    if auc_score >= best_acc and update:
+    if acc_score >= best_acc and update:
         print('update resnet ckpt!')
         state = {
             'net': net.state_dict(),
-            'auc_score': auc_score,
+            'auc_score': acc_score,
             'epoch': epoch,
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
         torch.save(state, MNIST_CKPT)
-        best_acc = auc_score
-
-def FGSM(x, y_true, eps=1/255, alpha=1/255, iteration=1, bim_a=False, confidence=0.5):
-    net.eval()
-    x = Variable(x.to(device), requires_grad=True)
-    y_true = Variable(y_true.to(device), requires_grad=False)
-
-    if iteration == 1:
-        x_adv = bim_attack.fgsm(x, y_true, False, eps)
-    else:
-        if bim_a:
-            x_adv = bim_attack.i_fgsm_a(x, y_true, False, eps, alpha, iteration, confidence=confidence)
-        else:
-            x_adv = bim_attack.i_fgsm(x, y_true, False, eps, alpha, iteration)
-
-    return x_adv
+        best_acc = acc_score
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    print(torch.cuda.device_count())
+
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -221,9 +242,9 @@ if __name__ == '__main__':
     # Model
     print('==> Building model..')
     net = MnistModel()
-    net = net.to(device)
+    net = net.cuda()
 
-    if device == 'cuda':
+    if torch.cuda.device_count() > 0:
         net = torch.nn.DataParallel(net)
         cudnn.benchmark = True
 
@@ -234,43 +255,47 @@ if __name__ == '__main__':
     net.load_state_dict(checkpoint['net'])
     start_epoch = checkpoint['epoch']
     print(start_epoch)
-    try:
-        best_acc = checkpoint['auc_score']
-        if best_acc > 90:
-            best_acc = best_acc / 100
-        print('best_auc: %.2f%%' % (100. * best_acc))
-    except:
-        pass
+
+    # try:
+    #     best_acc = checkpoint['auc_score']
+    #     if best_acc > 90:
+    #         best_acc = best_acc / 100
+    #     print('best_auc: %.2f%%' % (100. * best_acc))
+    # except:
+    #     pass
 
     l2dist = PairwiseDistance(2)
+    # criterion_none = nn.NLLLoss(reduction='none')
     criterion_none = nn.CrossEntropyLoss(reduction='none')
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=0.1)
     # attacks
     bim_attack = Attack(net, F.cross_entropy)
-    cw_attack = cw.L2Adversary(targeted=False,
-                               confidence=0.5,
-                               search_steps=10,
-                               box=(0, 1),
-                               optimizer_lr=0.001)
-    jsma_params = {'theta': 1, 'gamma': 0.1,
+    # cw_attack = cw.L2Adversary(targeted=False,
+    #                            confidence=0,
+    #                            search_steps=10,
+    #                            box=(0, 1),
+    #                            optimizer_lr=0.001)
+    jsma_params = {'theta': 1, 'gamma': 0.3,
                    'clip_min': 0., 'clip_max': 1.,
                    'nb_classes': 10}
+    # nb_features * gamma / 2
     jsma_attack = SaliencyMapMethod(net, **jsma_params)
 
-
     aucs = []
+    EPS_FGSM = 0.22
+
+    image_num = 4500
     for epoch in range(start_epoch, start_epoch+NUM_EPOCHS):
         # fgsm, bim_a, bim_b, jsma, cw
-        # train(epoch)
         # test(epoch, methods='fgsm', update=True)
-        methods = 'fgsm'
+        methods = 'bim_b'
         print('MNIST ', methods)
         # confidences = np.arange(50, 100, 4) / 100
         confidences = [0.5]
 
-        print(confidences)
+        # print(confidences)
         for i in confidences:
             print('==========',i)
             cw_attack = cw.L2Adversary(targeted=False,
@@ -279,5 +304,6 @@ if __name__ == '__main__':
                                        box=(0, 1),
                                        optimizer_lr=0.001)
             test(epoch, methods=methods, update=False, random_method=False, confidence=i)
-        print(aucs)
+        # print(aucs)
         break
+        # train(epoch)

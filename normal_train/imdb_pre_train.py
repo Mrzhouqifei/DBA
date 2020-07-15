@@ -52,8 +52,8 @@ def train():
                 'net': model.state_dict(),
                 'acc': acc,
             }
-            if not os.path.isdir('checkpoint'):
-                os.mkdir('checkpoint')
+            if not os.path.isdir('../checkpoint'):
+                os.mkdir('../checkpoint')
             torch.save(state, MOIVE_CKPT)
 
         print('train_loss %d epochs is %g' % ((i + 1), (sum_loss / 20000)))
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     embedding_dim = 50
     hidden_dim = 100
     # labeledTrainData   movieTrain
-    f = open('data/labeledTrainData.tsv').readlines()
+    f = open('../data/labeledTrainData.tsv').readlines()
     print('reading the lines')
     for idx, lines in enumerate(f):
         if not idx == 0:

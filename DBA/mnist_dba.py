@@ -207,8 +207,8 @@ def test(epoch, methods='fgsm', update=False, random_method=False, confidence=0.
             'auc_score': acc_score,
             'epoch': epoch,
         }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
+        if not os.path.isdir('../checkpoint'):
+            os.mkdir('../checkpoint')
         torch.save(state, MNIST_CKPT)
         best_acc = acc_score
 
@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    assert os.path.isdir('../checkpoint'), 'Error: no checkpoint directory found!'
     checkpoint = torch.load(MNIST_CKPT)
     net.load_state_dict(checkpoint['net'])
     start_epoch = checkpoint['epoch']

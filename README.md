@@ -57,42 +57,24 @@ $D_KL$ of adversarial sentence: 0.43
 * [Quora Question Pairs (QQP)](https://drive.google.com/file/d/0B0PlTAo--BnaQWlsZl9FZ3l1c28/view?usp=sharing)
 
 ## Attack methods
-Five attack methods are implemented in the folder ./adversary.
+Attack methods are implemented in the folder ./adversary.
 
 1. fgsm.py: FGSM, BIM
-2. jsma.py: JSMA, JSMA*(texts)
+2. jsma.py: JSMA, JSMA*(ReplaceAttack)
 3. cw.py: C&W
-4. Boundary Attack is implemented by Foolbox
-
-## Models
-Four models are implemented in the folder ./models.
-
-1. conv.py: The definitions of 5-layer convolution network for MNIST
-2. resnet.py: CIFAR10
-3. moiveRnn.py: IMDB
-4. esim.py: QQP
 
 ## Train
 ### Train models on normal examples
 
 ```
-python cifar10_pre_train.py
-python mnist_pre_train.py
-python movie_pre_train.py
-python quora_pre_train.py
+python normal_train/mnist_pre_train.py
 ```
 
-### Undercover training, undercover attack and performance analysis
+### Undercover training, DBA
 
 ```
-python cifar10_adv.py
 python mnist_adv.py
-python movie_adv.py
-python quora_adv.py
 ```
-
-## Test
-You can choose the function test() to test the models.
 
 ## Report issues
 Please let us know if you encounter any problems.

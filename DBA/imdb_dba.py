@@ -111,8 +111,8 @@ def train():
                     'net': model.state_dict(),
                     'acc': auc_score,
                 }
-                if not os.path.isdir('checkpoint'):
-                    os.mkdir('checkpoint')
+                if not os.path.isdir('../checkpoint'):
+                    os.mkdir('../checkpoint')
                 torch.save(state, MOIVE_CKPT_ADV_TRAINING)
 
 def test(stop_confidence):
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     model.load_state_dict(checkpoint['net'])
     best_acc = 0
 
-    f = open('data/labeledTrainData.tsv').readlines()
+    f = open('../data/labeledTrainData.tsv').readlines()
     bim_attack = Attack_MOVIE(model, F.cross_entropy)
 
     # iters = 4

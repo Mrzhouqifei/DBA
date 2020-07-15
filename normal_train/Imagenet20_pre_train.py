@@ -58,8 +58,8 @@ def test(epoch, update=False):
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
+        if not os.path.isdir('../checkpoint'):
+            os.mkdir('../checkpoint')
         torch.save(state, MINI_IMAGENET_CKPT)
         best_acc = acc
 
@@ -82,8 +82,8 @@ if __name__ == '__main__':
         'acc': 0,
         'epoch': 0,
     }
-    if not os.path.isdir('checkpoint'):
-        os.mkdir('checkpoint')
+    if not os.path.isdir('../checkpoint'):
+        os.mkdir('../checkpoint')
     torch.save(state, MINI_IMAGENET_CKPT)
 
     checkpoint = torch.load(MINI_IMAGENET_CKPT)

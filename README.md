@@ -3,8 +3,8 @@
 ## Description
 This repository includes the source code of the paper "Detection by Attack: Detecting Adversarial Samples by Undercover Attack". Please cite our paper when you use this program! 😍
 
-## Model overview
-![](https://i.loli.net/2019/11/22/STtspcuDf6PVUqb.png)
+## DBA overview
+![image.png](https://i.loli.net/2020/04/20/wtAj3ZT2kzN89gG.png)
 
 ## Quick glance
 A quick glance of the use cases of undercover attack on images and texts:
@@ -19,9 +19,9 @@ example_texts.ipynb
 
 The Kullback–Leibler divergence ($D_KL$) of benign example:  1.1444092e-05;
 
-adversarial example criterion:  2.758562;
+$D_KL$ of adversarial example:  2.758562;
 
-split criterion in our experiment is 1.2505696;
+the median of $D_KL$ is 1.2505696;
 
 1.1444092e-05 < 1.2505696 --> example1 is judged as a normal example;
 
@@ -45,9 +45,9 @@ original sentence:  comment this movie is impossible . is terrible very improbab
 
 adv sentence: comment this movie is impossible . is terrible very improbable bad but e direction . it look !
 
-original criterion loss: 0.00
+$D_KL$ of original sentence: 0.00
 
-adversarial criterion loss: 0.43
+$D_KL$ of adversarial sentence: 0.43
 
 ## Datasets
 

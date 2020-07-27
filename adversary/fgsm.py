@@ -27,7 +27,7 @@ class Attack(object):
         x_adv = torch.clamp(x_adv, x_val_min, x_val_max)
         return x_adv
 
-    def mini_imagenet__train_fgsm(self, x, y, targeted=False, eps=8/255, x_val_min=0, x_val_max=1):
+    def mini_imagenet_train_fgsm(self, x, y, targeted=False, eps=8/255, x_val_min=0, x_val_max=1):
         x_adv = Variable(x.data, requires_grad=True)
         h_adv = self.net(x_adv)[0]
         if targeted:
@@ -107,7 +107,6 @@ class Attack(object):
             probs, predicted = F.softmax(h_adv, dim=-1).max(1)
             flag = (predicted != y).detach().cpu().numpy().astype(bool) & \
                    (probs >= confidence).detach().cpu().numpy().astype(bool)
-            # print((probs > confidence).detach().cpu().numpy(),probs)
 
             if targeted:
                 cost = -self.criterion(h_adv, y)
@@ -160,11 +159,6 @@ def where(cond, x, y):
     cond = cond.float()
     return (cond*x) + ((1-cond)*y)
 
-
-# def ShannonEntropy(logits, soft_label):
-#     log_probs = F.log_softmax(logits, dim=-1)
-#     H = - torch.sum(torch.mul(soft_label, log_probs), dim=-1)
-#     return H
 
 def ShannonEntropy(logits, soft_label):
     pred_probs = F.softmax(logits, dim=-1)

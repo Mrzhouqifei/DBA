@@ -1,12 +1,11 @@
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim import lr_scheduler
 import torchvision
 import torchvision.transforms as transforms
-import os
 from models.mnist_model import MnistModel
-
+from torch.utils.tensorboard import SummaryWriter
 
 def train(epochs):
     print('==> Preparing data..')
@@ -54,11 +53,15 @@ def train(epochs):
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             torch.save(state, MNIST_CKPT)
+        test_loss, test_acc = test()
+        # writer.add_scalar('loss/train', train_loss, epoch)
+        writer.add_scalar('loss/test', test_loss, epoch)
+        writer.add_scalar('accuracy/train', acc, epoch)
+        writer.add_scalar('accuracy/test', test_acc, epoch)
 
 
 def test():
     # Data
-    print('==> Preparing data..')
     transform_test = transforms.Compose([
         transforms.ToTensor(),
     ])
@@ -67,7 +70,6 @@ def test():
                                              num_workers=4)
 
     # Model
-    print('==> Building model..')
     net = MnistModel()
     net = net.to(device)
     criterion = nn.CrossEntropyLoss()
@@ -89,11 +91,15 @@ def test():
             correct += predicted.eq(targets).sum().item()
     acc = 1.0 * correct / total
     print('test loss: %.2f, test acc: %.4f' % (test_loss, acc))
+    return test_loss, acc
 
 
 if __name__ == '__main__':
     MNIST_CKPT = './checkpoint/mnist.pth'
     device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 
+    writer = SummaryWriter('tensorboard/normal_train')
     train(50)
-    test()
+    # test()
+    writer.close()
+    # tensorboard - -logdir = 'tensorboard/normal_train'

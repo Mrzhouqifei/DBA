@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import torchvision.transforms as transforms
 from models.mnist_model import MnistModel
 from adversary.fgsm import Attack
+from torch.utils.tensorboard import SummaryWriter
 
 
 def undercover_attack(UndercoverAttack, x, y_true, eps=1/255):
@@ -68,6 +69,11 @@ def train(epochs):
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             torch.save(state, MNIST_CKPT)
+        test_loss, test_acc = test()
+        # writer.add_scalar('loss/train', train_loss, epoch)
+        writer.add_scalar('loss/test', test_loss, epoch)
+        writer.add_scalar('accuracy/train', acc, epoch)
+        writer.add_scalar('accuracy/test', test_acc, epoch)
 
 
 def test():
@@ -104,11 +110,14 @@ def test():
             correct += predicted.eq(targets).sum().item()
     acc = 1.0 * correct / total
     print('test loss: %.2f, test acc: %.4f' % (test_loss, acc))
+    return test_loss, acc
 
 
 if __name__ == '__main__':
     MNIST_CKPT = './checkpoint/mnist_undercover.pth'
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-
+    writer = SummaryWriter('tensorboard/undercover_train')
     train(50)
-    test()
+    # test()
+    writer.close()
+    # tensorboard --logdir='tensorboard/undercover_train'

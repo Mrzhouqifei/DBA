@@ -24,7 +24,7 @@ def train(epochs):
     ])
 
     trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True,
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True,
                                               num_workers=4)
     # Model
     print('==> Building model..')
@@ -77,7 +77,7 @@ def test():
         transforms.ToTensor(),
     ])
     testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False,
+    testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False,
                                              num_workers=4)
 
     # Model
@@ -108,7 +108,7 @@ def test():
 
 if __name__ == '__main__':
     MNIST_CKPT = './checkpoint/mnist_undercover.pth'
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 
-    train(50)
+    # train(50)
     test()

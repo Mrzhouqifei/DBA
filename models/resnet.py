@@ -100,7 +100,7 @@ def PreActResNet18():
 class MLP(nn.Module):
   def __init__(self):
     super(MLP, self).__init__()
-    self.fc1 = nn.Linear(1024 * 4, 256)
+    self.fc1 = nn.Linear(512 * 4, 256)
     self.fc2 = nn.Linear(256, 2)
 
   def forward(self, x):

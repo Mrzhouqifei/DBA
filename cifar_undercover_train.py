@@ -30,17 +30,17 @@ def train(epochs):
     # Model
     print('==> Building model..')
     best_acc = 0.0
-    net = PreActResNet18()
-    net = net.to(device)
-    checkpoint = torch.load(CIFAR_CKPT, map_location=torch.device(device))
-    net.load_state_dict(checkpoint['net'])
-    start_epoch = int(checkpoint['epoch'])
-    best_acc = float(checkpoint['acc'])
+    start_epoch = 0
+    net = PreActResNet18().to(device)
+    # checkpoint = torch.load(CIFAR_CKPT, map_location=torch.device(device))
+    # net.load_state_dict(checkpoint['net'])
+    # start_epoch = int(checkpoint['epoch'])
+    # best_acc = float(checkpoint['acc'])
 
     UndercoverAttack = Attack(net, nn.functional.cross_entropy)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.1)
 
     net.train()
     for epoch in range(start_epoch, epochs):
@@ -90,8 +90,7 @@ def test():
 
     # Model
     print('==> Building model..')
-    net = PreActResNet18()
-    net = net.to(device)
+    net = PreActResNet18().to(device)
     criterion = nn.CrossEntropyLoss()
     checkpoint = torch.load(CIFAR_CKPT)
     net.load_state_dict(checkpoint['net'])

@@ -5,9 +5,10 @@ This repository includes the source code of the paper "Detection by Attack: Dete
 
 ```
 @inproceedings{zhou2020detection,
-  title={Detection by Attack: Detecting Adversarial Samples by Undercover Attack},
+  title={Detection by attack: Detecting adversarial samples by undercover attack},
   author={Zhou, Qifei and Zhang, Rong and Wu, Bo and Li, Weiping and Mo, Tong},
   booktitle={European Symposium on Research in Computer Security},
+  pages={146--164},
   year={2020},
   organization={Springer}
 }

@@ -1,7 +1,7 @@
 # Detection by Attack: Detecting Adversarial Samples by Undercover Attack
 
 ## Description
-This repository includes the source code of the paper "Detection by Attack: Detecting Adversarial Samples by Undercover Attack". Please cite our paper when you use this program! 😍
+This repository includes the source code of the paper "Detection by Attack: Detecting Adversarial Samples by Undercover Attack". Please cite our paper when you use this program! 😍 This paper has been accepted to the conference "European Symposium on Research in Computer Security (ESORICS20)". This paper can be downloaded [here](https://link.springer.com/chapter/10.1007/978-3-030-59013-0_8).
 
 ```
 @inproceedings{zhou2020detection,
@@ -27,5 +27,3 @@ We take MNIST and CIFAR as examples: the mnist_undercover_train.py and cifar_und
 Please let us know if you encounter any problems.
 
 The contact email is qifeizhou@pku.edu.cn
-
-
